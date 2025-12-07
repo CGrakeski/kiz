@@ -16,12 +16,21 @@
 
 #include "kiz.hpp"
 
+#include "models.hpp"
+#include "bool_obj.hpp"
+#include "nil_obj.hpp"
+#include "int_obj.hpp"
+#include "rational_obj.hpp"
+#include "str_obj.hpp"
+#include "list_obj.hpp"
+#include "dict_obj.hpp"
+
 namespace kiz {
 
 deps::HashMap<model::Object*> Vm::builtins{};
 deps::HashMap<model::Module*> Vm::loaded_modules{};
 model::Module* Vm::main_module;
-std::stack<model::Object *> Vm::op_stack_{};
+std::stack<model::Object*> Vm::op_stack_{};
 std::vector<std::unique_ptr<CallFrame>> Vm::call_stack_{};
 bool Vm::running_ = false;
 const std::string& Vm::file_path = "";
@@ -104,6 +113,16 @@ Vm::Vm(const std::string& file_path) : file_path(file_path) {
     builtins.insert("str", model::based_str);
     builtins.insert("function", model::based_function);
     builtins.insert("nil", model::based_nil);
+}
+
+~Vm() {
+    Vm::builtins{};
+    Vm::loaded_modules{};
+    Vm::main_module = nullptr;
+    Vm::op_stack_{};
+    Vm::call_stack_{};
+    Vm::running_ = false;
+    Vm::file_path = "";
 }
 
 void Vm::load(model::Module* src_module) {
