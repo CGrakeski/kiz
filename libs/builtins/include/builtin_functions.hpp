@@ -32,6 +32,6 @@ inline NativeFuncPtr copy;
 
 inline NativeFuncPtr create;
 
-inline NativeFuncPtr typeof;
+inline NativeFuncPtr typeofobj;
 
 }
