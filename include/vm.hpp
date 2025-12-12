@@ -65,6 +65,7 @@ public:
     static void load_required_modules(const deps::HashMap<model::Module*>& modules);
     static VmState get_vm_state();
     static void exec(const Instruction& instruction);
+    static model::Object* get_return_val();
     static std::tuple<model::Object*, model::Object*> fetch_two_from_stack_top(const std::string& curr_instruction_name);
 
     static model::Object* get_attr(const model::Object* obj, const std::string& attr);
