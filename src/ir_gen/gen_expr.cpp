@@ -116,7 +116,7 @@ void IRGenerator::gen_expr(Expression* expr) {
         case AstType::SetMemberExpr: {
             // 设置成员：生成对象表达式 -> 生成值表达式 -> 加载属性名 -> SET_ATTR指令
             const auto* set_mem = dynamic_cast<SetMemberExpr*>(expr);
-            gen_expr(set_mem->g_mem.get()); // 生成对象IR（假设g_mem包含对象和属性名）
+            gen_expr(set_mem->g_mem->father.get()); // 生成对象IR
             gen_expr(set_mem->val.get());   // 生成值IR
             const auto* get_mem = dynamic_cast<GetMemberExpr*>(set_mem->g_mem.get());
             size_t name_idx = get_or_add_name(curr_names, get_mem->child->name);
