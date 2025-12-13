@@ -2,8 +2,8 @@
 
 namespace model {
 
-// Rational.add：有理数加法（self + 传入值，支持Rational/Int，返回新Rational）
-inline auto rational_add = [](Object* self, const List* args) -> Object* {
+// Rational.__add__：有理数加法（self + 传入值，支持Rational/Int，返回新Rational）
+model::Object* rational_add(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_add)");
     assert(args->val.size() == 1 && "function Rational.add need 1 arg");
 
@@ -24,8 +24,8 @@ inline auto rational_add = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.add second arg need be Rational or Int");
 };
 
-// Rational.sub：有理数减法（self - 传入值，支持Rational/Int，返回新Rational）
-inline auto rational_sub = [](Object* self, const List* args) -> Object* {
+// Rational.__sub__：有理数减法（self - 传入值，支持Rational/Int，返回新Rational）
+model::Object* rational_sub(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_sub)");
     assert(args->val.size() == 1 && "function Rational.sub need 1 arg");
 
@@ -46,8 +46,8 @@ inline auto rational_sub = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.sub second arg need be Rational or Int");
 };
 
-// Rational.mul：有理数乘法（self * 传入值，支持Rational/Int，返回新Rational）
-inline auto rational_mul = [](Object* self, const List* args) -> Object* {
+// Rational.__mul__：有理数乘法（self * 传入值，支持Rational/Int，返回新Rational）
+model::Object* rational_mul(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_mul)");
     assert(args->val.size() == 1 && "function Rational.mul need 1 arg");
 
@@ -68,8 +68,8 @@ inline auto rational_mul = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.mul second arg need be Rational or Int");
 };
 
-// Rational.div：有理数除法（self ÷ 传入值，支持Rational/Int，返回新Rational）
-inline auto rational_div = [](Object* self, const List* args) -> Object* {
+// Rational.__div__：有理数除法（self ÷ 传入值，支持Rational/Int，返回新Rational）
+model::Object* rational_div(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_div)");
     assert(args->val.size() == 1 && "function Rational.div need 1 arg");
 
@@ -93,8 +93,8 @@ inline auto rational_div = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.div second arg need be Rational or Int");
 };
 
-// Rational.eq：有理数相等判断（self == 传入值，支持Rational/Int，返回Bool）
-inline auto rational_eq = [](Object* self, const List* args) -> Object* {
+// Rational.__eq__：有理数相等判断（self == 传入值，支持Rational/Int，返回Bool）
+model::Object* rational_eq(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_eq)");
     assert(args->val.size() == 1 && "function Rational.eq need 1 arg");
 
@@ -115,8 +115,8 @@ inline auto rational_eq = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.eq second arg need be Rational or Int");
 };
 
-// Rational.lt：有理数小于判断（self < 传入值，支持Rational/Int，返回Bool）
-inline auto rational_lt = [](Object* self, const List* args) -> Object* {
+// Rational.__lt__：有理数小于判断（self < 传入值，支持Rational/Int，返回Bool）
+model::Object* rational_lt(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_lt)");
     assert(args->val.size() == 1 && "function Rational.lt need 1 arg");
 
@@ -137,8 +137,8 @@ inline auto rational_lt = [](Object* self, const List* args) -> Object* {
     assert(false && "function Rational.lt second arg need be Rational or Int");
 };
 
-// Rational.gt：有理数大于判断（self > 传入值，支持Rational/Int，返回Bool）
-inline auto rational_gt = [](Object* self, const List* args) -> Object* {
+// Rational.__gt__：有理数大于判断（self > 传入值，支持Rational/Int，返回Bool）
+model::Object* rational_gt(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (rational_gt)");
     assert(args->val.size() == 1 && "function Rational.gt need 1 arg");
 
