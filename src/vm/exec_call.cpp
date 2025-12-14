@@ -87,7 +87,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
 
         // 储存self
         if (self) {
-            self->make_ref()
+            self->make_ref();
             args_list->val.emplace(args_list.begin(), self);
         }
 
