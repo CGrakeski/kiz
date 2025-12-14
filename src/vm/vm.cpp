@@ -161,14 +161,10 @@ void Vm::load(model::Module* src_module) {
         const Instruction& curr_inst = curr_frame.code_object->code[curr_frame.pc];
         exec(curr_inst);
         DEBUG_OUTPUT("curr inst is "+opcode_to_string(curr_inst.opc));
+        DEBUG_OUTPUT("current stack top : " + (op_stack_.empty() ? " " : op_stack_.top()->to_string()));
 
-        // 调试输出栈顶
-        DEBUG_OUTPUT("current stack top : " +
-            (op_stack_.empty() ? " " : op_stack_.top()->to_string())
-        );
-
-        // PC自增
-        if (!(curr_inst.opc == Opcode::JUMP || curr_inst.opc == Opcode::JUMP_IF_FALSE || curr_inst.opc == Opcode::RET)) {
+        // 修正PC自增条件：仅非跳转/非RET指令自增
+        if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE && curr_inst.opc != Opcode::RET) {
             curr_frame.pc++;
         }
     }

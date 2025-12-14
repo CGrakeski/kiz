@@ -32,6 +32,7 @@ public:
 private:
     // parse stmt
     std::unique_ptr<Statement> parse_stmt();
+    std::unique_ptr<BlockStmt> parse_if_block();
     std::unique_ptr<BlockStmt> parse_block();
     std::unique_ptr<IfStmt> parse_if();
 

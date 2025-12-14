@@ -1,8 +1,6 @@
-fn foo(a, b)
-    return (a+b) * 3
+a=False
+if a
+    print(1)
+else
+    print(0)
 end
-
-a=0
-a.__call__ = foo
-print(a(1, 5))
-print(a.__call__(1, 5))

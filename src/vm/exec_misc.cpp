@@ -61,6 +61,7 @@ void Vm::exec_JUMP(const Instruction& instruction) {
     if (target_pc > curr_frame->code_object->code.size()) {
         assert(false && "JUMP: 目标pc超出字节码范围");
     }
+    call_stack_.back()->pc ++;
     call_stack_.back()->pc = target_pc;
 }
 
@@ -75,20 +76,11 @@ void Vm::exec_JUMP_IF_FALSE(const Instruction& instruction) {
     op_stack_.pop();
     size_t target_pc = instruction.opn_list[0];
 
-    bool need_jump = false;
-    if (dynamic_cast<model::Nil*>(cond)) {
-        need_jump = true;
-    } else if (const auto* cond_bool = dynamic_cast<model::Bool*>(cond); cond_bool) {
-        need_jump = !cond_bool->val;
-        DEBUG_OUTPUT("JUMP_IF_FALSE: 条件值为 " + std::string(cond_bool->val ? "True" : "False") +
-                     ", 是否跳转: " + std::string(need_jump ? "是" : "否"));
-    } else {
-        cond->del_ref(); // 避免内存泄漏
-        assert(false && "JUMP_IF_FALSE: 条件必须是Nil或Bool");
-    }
+    bool need_jump = check_obj_is_true(cond) ? false: true;
 
     if (need_jump) {
         // 跳转逻辑
+        DEBUG_OUTPUT("need jump");
         CallFrame* curr_frame = call_stack_.back().get();
         if (target_pc > curr_frame->code_object->code.size()) {
             cond->del_ref();

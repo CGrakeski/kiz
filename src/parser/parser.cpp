@@ -81,13 +81,13 @@ void Parser::skip_end_of_ln() {
 // skip_start_of_block实现 处理函数体前置换行
 void Parser::skip_start_of_block() {
     DEBUG_OUTPUT("skipping start of block...");
-    // 跳过函数定义后所有连续的换行符，确保正确解析函数体第一条语句
     while (curr_tok_idx_ < tokens_.size()) {
         const Token& curr_tok = tokens_.at(curr_tok_idx_);
+        // 跳过换行/缩进/空白
         if (curr_tok.type == TokenType::EndOfLine) {
-            skip_token("\n");
+            skip_token();
         } else {
-            break;  // 遇到非换行Token，停止跳过
+            break;
         }
     }
 }

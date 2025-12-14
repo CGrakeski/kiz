@@ -249,7 +249,7 @@ public:
         attrs.insert("__parent__", based_str);
     }
     [[nodiscard]] std::string to_string() const override {
-        return "\"" + val + "\"";
+        return val;
     }
 };
 

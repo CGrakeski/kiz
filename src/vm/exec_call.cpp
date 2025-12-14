@@ -7,8 +7,11 @@
 namespace kiz {
 
 bool Vm::check_obj_is_true(model::Object* obj) {
-    if (auto bool_obj = dynamic_cast<const model::Bool*>(obj)) {
-        return bool_obj->val==true ? true : false;
+    if (const auto bool_obj = dynamic_cast<const model::Bool*>(obj)) {
+        return bool_obj->val==true;
+    }
+    if (dynamic_cast<const model::Nil*>(obj)) {
+        return false;
     }
 
     call_function(get_attr(obj, "__bool__"), new model::List({}), obj);
@@ -65,15 +68,16 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         DEBUG_OUTPUT("call Function: " + func->name);
 
         // 校验参数数量
-        size_t required_argc = func->argc;
-        size_t actual_argc = self
+        const size_t required_argc = func->argc;
+        const size_t actual_argc = self
             ? args_list->val.size() + 1
             : args_list->val.size();
         if (actual_argc != required_argc) {
             func_obj->del_ref();
             args_obj->del_ref();
-            assert(false && ("CALL: 参数数量不匹配（需" + std::to_string(required_argc) +
-                            "个，实际" + std::to_string(actual_argc) + "个）").c_str());
+            std::cerr << ("CALL: 参数数量不匹配（需" + std::to_string(required_argc) +
+                            "个，实际" + std::to_string(actual_argc) + "个）");
+            assert(false);
         }
 
         // 创建新调用帧
@@ -88,7 +92,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         // 储存self
         if (self) {
             self->make_ref();
-            args_list->val.emplace(args_list.begin(), self);
+            args_list->val.emplace(args_list->val.begin(), self);
         }
 
         // 从参数列表中提取参数，存入调用帧 locals
@@ -122,7 +126,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         args_obj->del_ref();
     // 处理对象魔术方法__call__
     } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
-        call_function(callable_it->value, args_obj, self);
+        call_function(callable_it->value, args_obj, func_obj);
         func_obj->del_ref();
         args_obj->del_ref();
     } else {

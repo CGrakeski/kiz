@@ -11,23 +11,18 @@
 
 namespace kiz {
 
-std::unique_ptr<BlockStmt> Parser::parse_block() {
-    DEBUG_OUTPUT("parsing block");
+// 专门解析if/while的语句块（不以end结尾，以else/elif/end/EOF为终止）
+std::unique_ptr<BlockStmt> Parser::parse_if_block() {
+    DEBUG_OUTPUT("parsing if block (no end)");
     std::vector<std::unique_ptr<Statement>> block_stmts;
 
     while (curr_tok_idx_ < tokens_.size()) {
         const Token& curr_tok = curr_token();
 
-        // 遇到 end 关键字 → 终止块解析
-        if (curr_tok.type == TokenType::End) {
+        // 终止条件：遇到else/end/EOF → 停止解析（不消耗Token）
+        if (curr_tok.type == TokenType::Else||
+            curr_tok.type == TokenType::End || curr_tok.type == TokenType::EndOfFile) {
             break;
-        }
-        // 遇到 EOF → 语法错误（块未结束）
-        if (curr_tok.type == TokenType::EndOfFile) {
-            std::cerr << Color::RED
-                      << "[Syntax Error] Block missing 'end' terminator (unexpected EOF)"
-                      << Color::RESET << std::endl;
-            assert(false && "Block not terminated with 'end'");
         }
 
         // 解析单条语句并加入块
@@ -35,15 +30,43 @@ std::unique_ptr<BlockStmt> Parser::parse_block() {
             block_stmts.push_back(std::move(stmt));
         }
 
-        // 跳过语句后的分号（若存在）
+        // 跳过语句后的分号/换行（容错）
+        if (curr_token().type == TokenType::Semicolon || curr_token().type == TokenType::EndOfLine) {
+            skip_token();
+        }
+    }
+
+    return std::make_unique<BlockStmt>(std::move(block_stmts));
+}
+
+// 仅用于全局块、函数体等需要end结尾的块
+std::unique_ptr<BlockStmt> Parser::parse_block() {
+    DEBUG_OUTPUT("parsing block (with end)");
+    std::vector<std::unique_ptr<Statement>> block_stmts;
+
+    while (curr_tok_idx_ < tokens_.size()) {
+        const Token& curr_tok = curr_token();
+
+        if (curr_tok.type == TokenType::End) {
+            break;
+        }
+        if (curr_tok.type == TokenType::EndOfFile) {
+            std::cerr << Color::RED
+                      << "[Syntax Error] Block missing 'end' terminator (unexpected EOF)"
+                      << Color::RESET << std::endl;
+            assert(false && "Block not terminated with 'end'");
+        }
+
+        if (auto stmt = parse_stmt()) {
+            block_stmts.push_back(std::move(stmt));
+        }
+
         if (curr_token().type == TokenType::Semicolon) {
             skip_token(";");
         }
     }
 
-    // 跳过 end 关键字
-    skip_token("end");
-
+    skip_token("end"); // 仅全局/函数块消耗end
     return std::make_unique<BlockStmt>(std::move(block_stmts));
 }
 
@@ -58,24 +81,32 @@ std::unique_ptr<IfStmt> Parser::parse_if() {
                   << Color::RESET << std::endl;
         assert(false && "Invalid if condition");
     }
-    // 解析if体（无大括号，直接调用parse_block）
-    skip_start_of_block();  // 跳过条件后的换行
-    auto if_block = parse_block();
-    // 处理else分支（默认空）
+
+    // 解析if体（无end的块）
+    skip_start_of_block();
+    auto if_block = parse_if_block(); // 替换为parse_if_block，不消耗end
+
+    // 处理else分支
     std::unique_ptr<BlockStmt> else_block = nullptr;
     if (curr_token().type == TokenType::Else) {
         skip_token("else");
+        skip_start_of_block();
         if (curr_token().type == TokenType::If) {
-            // else if分支：递归解析if语句，包装为BlockStmt
+            // else if分支
             std::vector<std::unique_ptr<Statement>> else_if_stmts;
             else_if_stmts.push_back(parse_if());
             else_block = std::make_unique<BlockStmt>(std::move(else_if_stmts));
         } else {
-            // else分支：直接解析块
-            skip_start_of_block();
-            else_block = parse_block();
+            // else分支（无end的块）
+            else_block = parse_if_block(); // 替换为parse_if_block
         }
     }
+
+    // 消耗整个if-else的end（仅当存在else或直接结束时）
+    if (curr_token().type == TokenType::End) {
+        skip_token("end");
+    }
+
     return std::make_unique<IfStmt>(std::move(cond_expr), std::move(if_block), std::move(else_block));
 }
 
