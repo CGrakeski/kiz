@@ -43,9 +43,13 @@ enum class TokenType {
 struct Token {
     TokenType type;
     std::string text;
-    size_t lineno;
-    size_t column;
-    std::unordered_map<std::string, size_t> other_info{};
+    util::Position pos;
+    explicit Token( 
+        TokenType tp,
+        std::string t,
+        size_t lno_start, size_t lno_end,
+        size_t col_start, size_t col_end
+    ) : type(tp) , text(std::move(t)) , pos{lno_start, lno_end, col_start, col_end} {}
 };
 
 // 词法分析器类
