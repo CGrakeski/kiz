@@ -2,6 +2,18 @@
 
 namespace model {
 
+// List.__call__
+model::Object* list_call(model::Object* self, const model::List* args) {
+    return new model::List({});
+}
+
+// List.__bool__
+model::Object* list_bool(model::Object* self, const model::List* args) {
+    const auto self_int = dynamic_cast<List*>(self);
+    if (self_int->val.empty()) return new model::Bool(false);
+    return new model::Bool(true);
+}
+
 //  List.__add__：拼接另一个List（self + 传入List，返回新List）
 model::Object* list_add(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_add)");
@@ -86,7 +98,7 @@ model::Object* list_eq(model::Object* self, const model::List* args) {
     return new Bool(true);
 };
 
-// List.__contains__：判断列表是否包含目标元素
+// List.contains：判断列表是否包含目标元素
 model::Object* list_contains(model::Object* self, const model::List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_contains)");
     assert(args->val.size() == 1 && "function List.contains need 1 arg");
