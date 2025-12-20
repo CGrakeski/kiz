@@ -24,7 +24,7 @@ namespace model {
 template <typename T>
 std::string ptr_to_string(T* m) {
     // 将指针转为 uintptr_t
-    uintptr_t ptr_val = reinterpret_cast<uintptr_t>(m);
+    auto ptr_val = reinterpret_cast<uintptr_t>(m);
 
     // 格式化字符串
     std::stringstream ss;
@@ -142,7 +142,7 @@ public:
 class Function : public Object {
 public:
     std::string name;
-    CodeObject *code = nullptr;
+    CodeObject* code = nullptr;
     size_t argc = 0;
 
     static constexpr ObjectType TYPE = ObjectType::OT_Function;

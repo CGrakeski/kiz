@@ -38,6 +38,7 @@ Vm::Vm(const std::string& file_path_) {
     builtins.insert("create", new model::CppFunction(builtin::create));
     builtins.insert("now", new model::CppFunction(builtin::now));
     builtins.insert("getrefc", new model::CppFunction(builtin::getrefc));
+    builtins.insert("breakpointer", new model::CppFunction(builtin::breakpointer));
 
     DEBUG_OUTPUT("registering builtin objects...");
     builtins.insert("obj", model::based_obj);
@@ -57,6 +58,9 @@ Vm::Vm(const std::string& file_path_) {
     model::based_obj->attrs.insert("__eq__", new model::CppFunction([](const model::Object* self, const model::List* args) -> model::Object* {
         const auto other_obj = builtin::get_one_arg(args);
         return new model::Bool(self == other_obj);
+    }));
+    model::based_obj->attrs.insert("__str__", new model::CppFunction([](const model::Object* self, const model::List* args) -> model::Object* {
+        return new model::String(self->to_string());
     }));
 
     // Bool 类型魔法方法
@@ -129,15 +133,16 @@ void Vm::load(model::Module* src_module) {
     main_module = src_module;
 
     // 创建模块级调用帧（CallFrame）：模块是顶层执行单元，对应一个顶层调用帧
-    auto module_call_frame = std::make_unique<CallFrame>();
-    module_call_frame->attrs = src_module->attrs;
-    module_call_frame->locals = deps::HashMap<model::Object*>(); // 初始空局部变量表
-    module_call_frame->pc = 0;                         // 程序计数器初始化为0（从第一条指令开始执行）
-    module_call_frame->return_to_pc = src_module->code->code.size(); // 执行完所有指令后返回的位置（指令池末尾）
-    module_call_frame->name = src_module->name;        // 调用帧名称与模块名一致（便于调试）
-    module_call_frame->code_object = src_module->code; // 关联当前模块的CodeObject
-    module_call_frame->curr_lineno_map = src_module->code->lineno_map; // 复制行号映射（用于错误定位）
-    module_call_frame->names = src_module->code->names; // 复制变量名列表（指令操作数索引对应此列表）
+    auto module_call_frame = std::make_unique<CallFrame>(
+        src_module->name,                // 调用帧名称与模块名一致（便于调试）
+
+        src_module->attrs,
+        deps::HashMap<model::Object*>(), // 初始空局部变量表
+
+        0,                               // 程序计数器初始化为0（从第一条指令开始执行）
+        src_module->code->code.size(),   // 执行完所有指令后返回的位置（指令池末尾）
+        src_module->code                 // 关联当前模块的CodeObject
+    );
 
     // 将调用帧压入VM的调用栈
     call_stack_.emplace_back(std::move(module_call_frame));
@@ -221,7 +226,6 @@ void Vm::extend_code(const model::CodeObject* code_object) {
     // ========== 覆盖：行号映射 ==========
     global_code_obj.lineno_map.clear();
     global_code_obj.lineno_map = code_object->lineno_map;
-    curr_frame.curr_lineno_map = global_code_obj.lineno_map;
     DEBUG_OUTPUT("extend_code: 覆盖行号映射：新 "
         + std::to_string(global_code_obj.lineno_map.size())
         + " 条（CallFrame lineno_map 同步更新）"

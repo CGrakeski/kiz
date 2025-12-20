@@ -1,13 +1,14 @@
 #include "models.hpp"
+#include "include/builtin_functions.hpp"
 
 namespace model {
 
 // String.__call__
 model::Object* str_call(model::Object* self, const model::List* args) {
     std::string val = 
-        args.empty()
+        args->val.empty()
         ? ""
-        : get_one_arg()->to_string;
+        : builtin::get_one_arg(args)->to_string();
 
     return new model::String(val);
 }

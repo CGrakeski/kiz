@@ -26,7 +26,7 @@ Token Parser::skip_token(const std::string& want_skip) {
     // 边界检查：索引越界直接返回 EOF
     if (curr_tok_idx_ >= tokens_.size()) {
         DEBUG_OUTPUT("skip_token: 索引越界，返回 EOF");
-        return {TokenType::EndOfFile, "", 0, 0};
+        return Token{TokenType::EndOfFile, "", 0, 0};
     }
 
     const Token& curr_tok = tokens_.at(curr_tok_idx_);
@@ -57,7 +57,7 @@ Token Parser::curr_token() const {
     if (curr_tok_idx_ < tokens_.size()) {
         return tokens_.at(curr_tok_idx_);
     }
-    return {TokenType::EndOfFile, "", 0, 0};
+    return Token{TokenType::EndOfFile, "", 0, 0};
 }
 
 // skip_end_of_ln实现
@@ -80,7 +80,7 @@ void Parser::skip_end_of_ln() {
     // 既不是分号也不是换行，抛错
     std::cerr << Color::RED
               << "[Syntax Error] Statement must end with ';' or newline, got '"
-              << curr_tok.text << "' (Line: " << curr_tok.lineno << ", Col: " << curr_tok.column << ")"
+              << curr_tok.text << "' (Line: " << curr_tok.pos.lno_start << ", Col: " << curr_tok.pos.col_start << ")"
               << Color::RESET << std::endl;
     assert(false && "Invalid statement terminator");
 }
@@ -112,7 +112,7 @@ std::unique_ptr<BlockStmt> Parser::parse(const std::vector<Token>& tokens) {
         const auto& tok = tokens[i];
         DEBUG_OUTPUT(
             "Token[" + std::to_string(i) + "]: type=" + std::to_string(static_cast<int>(tok.type))
-            + ", text='" + tok.text + "', line=" + std::to_string(tok.lineno)
+            + ", text='" + tok.text + "', line=" + std::to_string(tok.pos.lno_start)
         );
     }
     DEBUG_OUTPUT("=== Token 序列结束 ===");

@@ -355,8 +355,9 @@ std::vector<Token> Lexer::tokenize(const std::string& src) {
                 "Unknown character '"+std::string(1, src[pos]) + "'",
                 1
             };
-            util::error_reporter(file_path, lineno, lineno,
-                start_col, start_col, err);
+            util::error_reporter(file_path, {lineno, lineno,
+                start_col, start_col}, err
+            );
         }
     }
     tokens.emplace_back(TokenType::EndOfFile, "", lineno, col);

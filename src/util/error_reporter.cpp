@@ -26,13 +26,15 @@ std::string generate_separator(const int col_start, const int col_end, const int
 }
 
 void error_reporter(
-    const std::string& src_path,
-    const int& src_line_start,
-    const int& src_line_end,
-    const int& src_col_start,
-    const int& src_col_end,
-    const ErrorInfo& error
+        const std::string& src_path,
+        const PositionInfo& pos,
+        const ErrorInfo& error
 ) {
+    size_t src_line_start = pos.lno_start;
+    size_t src_line_end = pos.lno_end;
+    size_t src_col_start = pos.col_start;
+    size_t src_col_end = pos.col_end;
+
     // 获取错误行代码
     std::string error_line = get_slice(src_path, src_line_start, src_line_end);
     if (error_line.empty()) {

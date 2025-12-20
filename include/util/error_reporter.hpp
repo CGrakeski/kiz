@@ -24,7 +24,7 @@ struct ErrorInfo {
     int err_code;
 };
 
-std::string generate_separator(const int col_start, const int col_end, const int line_end);
+std::string generate_separator(int col_start, int col_end, int line_end);
 
 void error_reporter(
     const std::string& src_path,

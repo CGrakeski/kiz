@@ -155,7 +155,7 @@ std::unique_ptr<Statement> Parser::parse_stmt() {
                 if (param_tok.type != TokenType::Identifier) {
                     std::cerr << Color::RED
                               << "[Syntax Error] Function parameter must be an identifier, got '"
-                              << param_tok.text << "' (Line: " << param_tok.lineno << ")"
+                              << param_tok.text << "' (Line: " << param_tok.pos.lno_start << ")"
                               << Color::RESET << std::endl;
                     assert(false && "Invalid function parameter");
                 }

@@ -42,7 +42,6 @@ public:
         const std::vector<std::tuple<size_t, size_t>>& lineno_map
     );
     void gen_block(const BlockStmt* block);
-    void gen_fn_decl(FnDeclExpr* fn_decl);
 
     void gen_literal(Expression* expr);
     void gen_fn_call(CallExpr* expr);

@@ -11,8 +11,10 @@
 
 #include <stack>
 #include <tuple>
+#include <utility>
 
 #include "kiz.hpp"
+#include "util/error_reporter.hpp"
 
 namespace model {
 class Object;
@@ -28,7 +30,8 @@ enum class Opcode;
 struct Instruction {
     Opcode opc;
     std::vector<size_t> opn_list;
-    PositionInfo pos;
+    util::PositionInfo pos{};
+    Instruction(Opcode o, std::vector<size_t> ol) : opc(o), opn_list(std::move(ol)) {}
 };
 
 struct CallFrame {
@@ -59,14 +62,12 @@ public:
     static void load(model::Module* src_module);
     static void extend_code(const model::CodeObject* code_object);
     static void load_required_modules(const deps::HashMap<model::Module*>& modules);
-    static VmState get_vm_state();
+    static model::Object* get_stack_top();
     static void exec(const Instruction& instruction);
     static model::Object* get_return_val();
     static std::tuple<model::Object*, model::Object*> fetch_two_from_stack_top(const std::string& curr_instruction_name);
 
     static model::Object* get_attr(const model::Object* obj, const std::string& attr);
-    static std::string get_obj_to_str(const model::Object* obj);
-    static std::string get_obj_debug_str(const model::Object* obj);
     static bool check_obj_is_true(model::Object* obj);
     static void call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self);
 

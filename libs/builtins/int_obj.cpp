@@ -1,14 +1,15 @@
 #include "models.hpp"
 #include "vm.hpp"
+#include "include/builtin_functions.hpp"
 
 namespace model {
 
 // Int.__call__
 model::Object* int_call(model::Object* self, const model::List* args) {
-    auto a = get_one_arg();
+    auto a = builtin::get_one_arg(args);
     deps::BigInt val(0);
-    if (dynamic_cast<String*>(a)) val = deps::Bigint(a->val);
-    else if (!kiz::Vm::check_is_true(a)) val = deps::Bigint(0);
+    if (auto s = dynamic_cast<String*>(a)) val = deps::BigInt(s->val);
+    else if (!kiz::Vm::check_obj_is_true(a)) val = deps::BigInt(0);
     return new model::Int(val);
 }
 

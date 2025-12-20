@@ -47,7 +47,7 @@ Object* str_bool(Object* self, const List* args);
 // Dict 类型原生函数
 Object* dict_eq(Object* self, const List* args);
 Object* dict_add(Object* self, const List* args);
-Object* dict_contains(Object* self, const List* args););
+Object* dict_contains(Object* self, const List* args);;
 
 // List 类型原生函数
 Object* list_eq(Object* self, const List* args);

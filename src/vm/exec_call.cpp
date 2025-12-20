@@ -62,7 +62,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         args_obj->del_ref();
         DEBUG_OUTPUT("ok to call CppFunction...");
         DEBUG_OUTPUT("CppFunction return: " + return_val->to_string());
-    } else if (const auto* func = dynamic_cast<model::Function*>(func_obj)) {
+    } else if (auto* func = dynamic_cast<model::Function*>(func_obj)) {
         // -------------------------- 处理 Function 调用 --------------------------
         DEBUG_OUTPUT("call Function: " + func->name);
 
@@ -80,13 +80,16 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         }
 
         // 创建新调用帧
-        auto new_frame = std::make_unique<CallFrame>();
-        new_frame->name = func->name;
-        new_frame->code_object = func->code;
-        new_frame->pc = 0;
-        new_frame->return_to_pc = call_stack_.back()->pc + 1;
-        new_frame->names = func->code->names;
-        new_frame->is_week_scope = false;
+        auto new_frame = std::make_unique<CallFrame>(
+             func->name,
+
+             func->attrs,
+             deps::HashMap<model::Object*>(), // 初始空局部变量表
+
+            0,                               // 程序计数器初始化为0（从第一条指令开始执行）
+            call_stack_.back()->pc + 1,   // 执行完所有指令后返回的位置（指令池末尾）
+            func->code                 // 关联当前模块的CodeObject
+        );
 
         // 储存self
         if (self) {
@@ -96,13 +99,13 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
 
         // 从参数列表中提取参数，存入调用帧 locals
         for (size_t i = 0; i < required_argc; ++i) {
-            if (i >= new_frame->names.size()) {
+            if (i >= new_frame->code_object->names.size()) {
                 func_obj->del_ref();
                 args_obj->del_ref();
                 assert(false && "CALL: 参数名索引超出范围");
             }
 
-            std::string param_name = new_frame->names[i];
+            std::string param_name = new_frame->code_object->names[i];
             model::Object* param_val = args_list->val[i];  // 从列表取参数
 
             // 校验参数非空
@@ -123,6 +126,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         // 释放临时引用
         func_obj->del_ref();
         args_obj->del_ref();
+
     // 处理对象魔术方法__call__
     } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
         call_function(callable_it->value, args_obj, func_obj);
@@ -182,10 +186,10 @@ void Vm::exec_CALL_METHOD(const Instruction& instruction) {
     size_t name_idx = instruction.opn_list[0];
     CallFrame* curr_frame = call_stack_.back().get();
 
-    if (name_idx >= curr_frame->names.size()) {
+    if (name_idx >= curr_frame->code_object->names.size()) {
         assert(false && "GET_ATTR: 属性名索引超出范围");
     }
-    std::string attr_name = curr_frame->names[name_idx];
+    std::string attr_name = curr_frame->code_object->names[name_idx];
 
     auto func_obj = get_attr(obj, attr_name);
     func_obj->make_ref();

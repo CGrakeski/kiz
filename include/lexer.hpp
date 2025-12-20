@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include "util/error_reporter.hpp"
 #include <cstddef>
 #include <unordered_map>
 
@@ -43,13 +44,18 @@ enum class TokenType {
 struct Token {
     TokenType type;
     std::string text;
-    util::Position pos;
+    util::PositionInfo pos{};
     explicit Token( 
         TokenType tp,
         std::string t,
         size_t lno_start, size_t lno_end,
         size_t col_start, size_t col_end
     ) : type(tp) , text(std::move(t)) , pos{lno_start, lno_end, col_start, col_end} {}
+    explicit Token(
+        TokenType tp,
+        std::string t,
+        size_t lno, size_t col
+    ) : type(tp) , text(std::move(t)) , pos{lno, lno, col, col} {}
 };
 
 // 词法分析器类

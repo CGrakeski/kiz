@@ -39,7 +39,7 @@ void Vm::exec_LOAD_VAR(const Instruction& instruction) {
 
     if (var_it == nullptr) {
         DEBUG_OUTPUT("try to find in builtins (getting var name)");
-        var_name = call_stack_.back().get()-> names[name_idx];
+        var_name = call_stack_.back().get()-> code_object->names[name_idx];
         DEBUG_OUTPUT("current builtins: " + builtins.to_string());
         DEBUG_OUTPUT("var_name="+var_name);
         if (auto builtin_it = builtins.find(var_name)) {

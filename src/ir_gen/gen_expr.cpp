@@ -20,9 +20,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             const size_t name_idx = get_or_add_name(curr_names, ident->name);
             curr_code_list.emplace_back(
                 Opcode::LOAD_VAR,
-                std::vector<size_t>{name_idx},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{name_idx}
             );
             curr_lineno_map.emplace_back(curr_code_list.size() - 1, expr->start_ln);
             break;
@@ -53,9 +51,7 @@ void IRGenerator::gen_expr(Expression* expr) {
 
             curr_code_list.emplace_back(
                 opc,
-                std::vector<size_t>{},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{}
             );
             curr_lineno_map.emplace_back(curr_code_list.size() - 1, expr->start_ln);
             break;
@@ -72,9 +68,7 @@ void IRGenerator::gen_expr(Expression* expr) {
 
             curr_code_list.emplace_back(
                 opc,
-                std::vector<size_t>{},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{}
             );
             curr_lineno_map.emplace_back(curr_code_list.size() - 1, expr->start_ln);
             break;
@@ -94,9 +88,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             // 生成 OP_MAKE_LIST 指令
             curr_code_list.emplace_back(
             Opcode::MAKE_LIST,
-                std::vector{list_expr->elements.size()},
-                expr->start_ln,
-                expr->end_ln
+                std::vector{list_expr->elements.size()}
            );
             break;
         }
@@ -107,9 +99,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             size_t name_idx = get_or_add_name(curr_names, get_mem->child->name);
             curr_code_list.emplace_back(
             Opcode::GET_ATTR,
-                std::vector<size_t>{name_idx},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{name_idx}
                 );
             break;
         }
@@ -138,15 +128,11 @@ void IRGenerator::gen_expr(Expression* expr) {
                 const size_t nil_idx = get_or_add_const(curr_consts, nil);
                 curr_code_list.emplace_back(
                 Opcode::LOAD_CONST,
-                    std::vector<size_t>{nil_idx},
-                    lambda->body->start_ln,
-                    lambda->body->end_ln
+                    std::vector<size_t>{nil_idx}
                 );
                 curr_code_list.emplace_back(
                 Opcode::RET,
-                    std::vector<size_t>{},
-                    lambda->body->end_ln,
-                    lambda->body->end_ln
+                    std::vector<size_t>{}
                 );
             }
 
@@ -173,9 +159,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             const size_t fn_const_idx = get_or_add_const(curr_consts, lambda_fn);
             curr_code_list.emplace_back(
                 Opcode::LOAD_CONST,
-                std::vector{fn_const_idx},
-                expr->start_ln,
-                expr->end_ln
+                std::vector{fn_const_idx}
             );
             break;
         }
@@ -184,9 +168,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             const size_t nil_idx = get_or_add_const(curr_consts, nil);
             curr_code_list.emplace_back(
             Opcode::LOAD_CONST,
-                std::vector<size_t>{nil_idx},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{nil_idx}
             );
             break;
         }
@@ -197,9 +179,7 @@ void IRGenerator::gen_expr(Expression* expr) {
             const size_t bool_idx = get_or_add_const(curr_consts, bool_obj);
             curr_code_list.emplace_back(
             Opcode::LOAD_CONST,
-                std::vector<size_t>{bool_idx},
-                expr->start_ln,
-                expr->end_ln
+                std::vector<size_t>{bool_idx}
             );
             break;
         }
@@ -220,9 +200,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
     // 生成 OP_MAKE_LIST 指令：将栈顶 arg_count 个元素打包成参数列表，压回栈
     curr_code_list.emplace_back(
         Opcode::MAKE_LIST,
-        std::vector<size_t>{arg_count},
-        call_expr->start_ln,
-        call_expr->end_ln
+        std::vector<size_t>{arg_count}
     );
     curr_lineno_map.emplace_back(curr_code_list.size() - 1, call_expr->start_ln);
 
@@ -237,9 +215,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
         // 生成 CALL_METHOD 指令：操作数为 方法名索引 + 参数个数（用于校验）
         curr_code_list.emplace_back(
             Opcode::CALL_METHOD,
-            std::vector<size_t>{method_name_idx, arg_count},
-            call_expr->start_ln,
-            call_expr->end_ln
+            std::vector<size_t>{method_name_idx, arg_count}
         );
         curr_lineno_map.emplace_back(curr_code_list.size() - 1, call_expr->start_ln);
     } else {
@@ -247,9 +223,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
         gen_expr(call_expr->callee.get());
         curr_code_list.emplace_back(
             Opcode::CALL,
-            std::vector<size_t>{arg_count},
-            call_expr->start_ln,
-            call_expr->end_ln
+            std::vector<size_t>{arg_count}
         );
         curr_lineno_map.emplace_back(curr_code_list.size() - 1, call_expr->start_ln);
     }
@@ -278,9 +252,7 @@ void IRGenerator::gen_dict(DictDeclExpr* expr) {
     size_t dict_const_idx = get_or_add_const(curr_consts, dict);
     curr_code_list.emplace_back(
         Opcode::LOAD_CONST,
-        std::vector<size_t>{dict_const_idx},
-        expr->start_ln,
-        expr->end_ln
+        std::vector<size_t>{dict_const_idx}
     );
     curr_lineno_map.emplace_back(curr_code_list.size() - 1, expr->start_ln);
 }
@@ -305,9 +277,7 @@ void IRGenerator::gen_literal(Expression* expr) {
     size_t const_idx = get_or_add_const(curr_consts, const_obj);
     curr_code_list.emplace_back(
         Opcode::LOAD_CONST,
-        std::vector<size_t>{const_idx},
-        expr->start_ln,
-        expr->end_ln
+        std::vector<size_t>{const_idx}
     );
     curr_lineno_map.emplace_back(curr_code_list.size() - 1, expr->start_ln);
 }
