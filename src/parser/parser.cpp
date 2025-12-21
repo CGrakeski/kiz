@@ -28,7 +28,7 @@ Token Parser::skip_token(const std::string& want_skip) {
         assert("skip_token: 索引越界");
     }
 
-    const Token& curr_tok = tokens.[curr_tok_idx_];
+    const Token& curr_tok = tokens_[curr_tok_idx_];
     // 无目标文本：直接跳过当前 Token
     if (want_skip.empty()) {
         curr_tok_idx_++;
@@ -47,7 +47,6 @@ Token Parser::skip_token(const std::string& want_skip) {
 
 // curr_token实现
 Token Parser::curr_token() const {
-    DEBUG_OUTPUT("getting current token...");
     if (curr_tok_idx_ < tokens_.size()) {
         return tokens_.at(curr_tok_idx_);
     }
@@ -77,16 +76,17 @@ void Parser::skip_end_of_ln() {
 // skip_start_of_block实现 处理函数体前置换行
 void Parser::skip_start_of_block() {
     DEBUG_OUTPUT("skipping start of block...");
-    const Token curr_tok = curr_token();
-    if (curr_tok.type == TokenType::Colon) {
-        skip_token(":");
-        return;
-    }
-    if (curr_tok.type == TokenType::EndOfLine) {
-        skip_token("\n");
-        return;
-    }
-    assert(false && "Invalid statement terminator");
+    // const Token curr_tok = curr_token();
+    // // if (curr_tok.type == TokenType::Colon) {
+    // //     skip_token(":");
+    // //     return;
+    // // }
+    // while (curr_tok.type == TokenType::EndOfLine) {
+    //     skip_token("\n");
+    //     return;
+    // }
+    // assert(false && "Invalid statement terminator");
+    // skip_token();
 }
 
 // parse_program实现（解析整个程序

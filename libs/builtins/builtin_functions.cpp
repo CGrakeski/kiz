@@ -40,7 +40,7 @@ model::Object* help(model::Object* self, const model::List* args) {
     return new model::Nil();
 };
 
-model::Object* breakpointer(model::Object* self, const model::List* args) {
+model::Object* breakpoint(model::Object* self, const model::List* args) {
     size_t i = 0;
     for (auto& frame: kiz::Vm::call_stack_) {
         std::cout << "Frame [" << i << "] " << frame->name << "\n";
@@ -116,7 +116,7 @@ model::Object* delattr(model::Object* self, const model::List* args) {
     return new model::Nil();
 };
 
-model::Object* getrefc(model::Object* self, const model::List* args) {
+model::Object* get_refc(model::Object* self, const model::List* args) {
     const auto obj = get_one_arg(args);
     return new model::Int( deps::BigInt(obj->get_refc_()) );
 };

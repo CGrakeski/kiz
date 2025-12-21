@@ -52,8 +52,9 @@ void Vm::exec_LOAD_VAR(const Instruction& instruction) {
             auto owner_module = dynamic_cast<model::Module*>(owner_module_it->value);
             assert(owner_module != nullptr);
             auto var_it = owner_module->attrs.find(var_name);
-            assert((var_it != nullptr) && "LOAD_VAR: 局部变量未定义");
-        } 
+
+        }
+        else assert((var_it != nullptr) && "LOAD_VAR: 局部变量未定义");
     }
 
     model::Object* var_val = var_it->value;

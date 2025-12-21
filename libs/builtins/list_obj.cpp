@@ -118,14 +118,10 @@ model::Object* list_contains(model::Object* self, const model::List* args) {
         );
         const auto result = kiz::Vm::get_return_val();
     
-        const auto result_val = dynamic_cast<Bool*>(result);
-        assert(result_val!=nullptr);
+        const auto result_val = kiz::Vm::check_obj_is_true(result);
 
         // 找到匹配元素，立即返回true
-        if (result_val->val == true) {
-            result_val->make_ref();
-            return result_val;
-        }
+        if (result_val) new Bool(true);
     }
     
     // 遍历完未找到匹配元素，返回false

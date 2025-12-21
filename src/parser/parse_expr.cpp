@@ -205,7 +205,7 @@ std::unique_ptr<Expression> Parser::parse_primary() {
 
         // 解析函数体（无大括号，用end结尾）
         skip_start_of_block();  // 跳过参数后的换行
-        auto func_body = parse_block();  // 函数体为非全局作用域
+        auto func_body = parse_block();
         skip_token("end");
         return std::make_unique<FnDeclExpr>("<lambda>", std::move(func_params),std::move(func_body));
     }

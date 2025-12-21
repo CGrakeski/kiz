@@ -12,16 +12,17 @@
 namespace kiz {
 
 // 需要end结尾的块
-std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith = TokenType::End) {
+std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith) {
     DEBUG_OUTPUT("parsing block (with end)");
     std::vector<std::unique_ptr<Statement>> block_stmts;
 
     while (curr_tok_idx_ < tokens_.size()) {
         const Token& curr_tok = curr_token();
 
-        if (curr_tok.type == endswith) {
+        if (curr_tok.type == endswith or curr_tok.type == TokenType::End) {
             break;
         }
+
         if (curr_tok.type == TokenType::EndOfFile) {
             assert(false && "Block not terminated with 'end'");
         }
@@ -224,7 +225,7 @@ std::unique_ptr<Statement> Parser::parse_stmt() {
     }
 
     // 跳过换行
-    while (curr_token() == TokenType::EndOfLine) {
+    while (curr_token().type == TokenType::EndOfLine) {
         skip_token("\n");
     }
 

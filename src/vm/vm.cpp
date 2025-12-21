@@ -37,8 +37,8 @@ Vm::Vm(const std::string& file_path_) {
     builtins.insert("isinstance", new model::CppFunction(builtin::isinstance));
     builtins.insert("create", new model::CppFunction(builtin::create));
     builtins.insert("now", new model::CppFunction(builtin::now));
-    builtins.insert("getrefc", new model::CppFunction(builtin::getrefc));
-    builtins.insert("breakpointer", new model::CppFunction(builtin::breakpointer));
+    builtins.insert("get_refc", new model::CppFunction(builtin::get_refc));
+    builtins.insert("breakpoint", new model::CppFunction(builtin::breakpoint));
 
     DEBUG_OUTPUT("registering builtin objects...");
     builtins.insert("obj", model::based_obj);

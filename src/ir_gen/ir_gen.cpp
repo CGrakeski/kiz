@@ -65,8 +65,7 @@ model::Module* IRGenerator::gen(std::unique_ptr<BlockStmt> ast_into) {
     return gen_mod(file_path,
         curr_names,
         curr_code_list,
-        curr_consts,
-        {}
+        curr_consts
     );
 }
 

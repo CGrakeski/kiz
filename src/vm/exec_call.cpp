@@ -57,9 +57,6 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         // 返回值压入操作数栈
         op_stack_.push(return_val);
 
-        // 释放临时引用
-        func_obj->del_ref();
-        args_obj->del_ref();
         DEBUG_OUTPUT("ok to call CppFunction...");
         DEBUG_OUTPUT("CppFunction return: " + return_val->to_string());
     } else if (auto* func = dynamic_cast<model::Function*>(func_obj)) {
@@ -123,19 +120,11 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         // 压入新调用帧，更新程序计数器
         call_stack_.emplace_back(std::move(new_frame));
 
-        // 释放临时引用
-        func_obj->del_ref();
-        args_obj->del_ref();
-
     // 处理对象魔术方法__call__
     } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
+        DEBUG_OUTPUT("call callable obj");
         call_function(callable_it->value, args_obj, func_obj);
-        func_obj->del_ref();
-        args_obj->del_ref();
     } else {
-        // 释放临时引用（类型错误时）
-        func_obj->del_ref();
-        args_obj->del_ref();
         assert(false && "CALL: 栈顶元素非Function/CppFunction类型");
     }
 }

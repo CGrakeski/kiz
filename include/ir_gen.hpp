@@ -17,9 +17,14 @@
 
 namespace kiz {
 
+struct LoopInfo {
+    std::vector<size_t> break_pos;
+    std::vector<size_t> continue_pos;
+};
+
 class IRGenerator {
     std::unique_ptr<BlockStmt> ast;
-    std::stack<size_t> block_stack;
+    std::stack<LoopInfo> block_stack;
 
     std::vector<std::string> curr_names;
     std::vector<Instruction> curr_code_list;
@@ -37,8 +42,7 @@ public:
         const std::string& module_name,
         const std::vector<std::string>& names,
         const std::vector<Instruction>& code_list,
-        const std::vector<model::Object*>& consts,
-        const std::vector<std::tuple<size_t, size_t>>& lineno_map
+        const std::vector<model::Object*>& consts
     );
     void gen_block(const BlockStmt* block);
 
