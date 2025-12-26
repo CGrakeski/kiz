@@ -33,10 +33,7 @@ enum class AstType {
 
 // AST 基类
 struct ASTNode {
-    int start_ln = 0;
-    int end_ln = 0;
-    int start_col = 0;
-    int end_col = 0;
+    util::Position pos{};
     AstType ast_type = AstType::NullStmt;
     
     virtual ~ASTNode() = default;
