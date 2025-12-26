@@ -36,6 +36,8 @@ namespace MagicName {
     constexpr std::string GetItem = "__getitem__";
     constexpr std::string SetItem = "__setitem__";
     constexpr std::string Contains = "__contains__";
+    constexpr std::string EndIter = "__end_iter__";
+    constexpr std::string NextItem = "__next_item__";
     constexpr std::string OwnerModule = "__owner_module__";
 }
 
