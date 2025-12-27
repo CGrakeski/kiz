@@ -256,6 +256,22 @@ model::Object* Vm::get_stack_top() {
     return stack_top;
 }
 
+void Vm::throw_error (
+    err::PositionInfo& pos,
+    err::ErrorInfo& err
+) {
+    deps::HashMap positions {};
+    std::string path;
+    for (auto* frame : call_stack_) {
+        if (auto m = dynamic_cast<model::Module*>(frame->owner)) {
+            path = m->name;
+        }
+        auto pos = frame->code_object->code.at(frame.pc);
+        positions.insert(path, pos);
+    }
+    err::traceback_reporter(positions, err);
+}
+
 void Vm::exec(const Instruction& instruction) {
     switch (instruction.opc) {
         case Opcode::OP_ADD:          exec_ADD(instruction);          break;
