@@ -45,6 +45,7 @@ model::Object* breakpoint(model::Object* self, const model::List* args) {
     for (auto& frame: kiz::Vm::call_stack_) {
         std::cout << "Frame [" << i << "] " << frame->name << "\n";
         std::cout << "=================================" << "\n";
+        std::cout << "Owner: " << frame->owner->to_string() << "\n";
         std::cout << "Pc: " << frame->pc << "\n";
 
         std::cout << "Locals: " << "\n";
