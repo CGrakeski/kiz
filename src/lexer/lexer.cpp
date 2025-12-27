@@ -272,9 +272,10 @@ std::vector<Token> Lexer::tokenize(const std::string& src) {
             ++pos;
             ++col;
         } else if (src[pos] == '#') {
-            // Single line comment with //
+            // 单行注释：# 开头直至行尾
             size_t j = pos + 1;
-            while (j < src.size() && src[j] != '\n') ++j;
+            while (j < src.size() && src[j] != '\n') ++j; // 跳过注释内容到行尾
+            col += (j - pos); // 关键：更新列号，避免后续 token 列号错误
             pos = j;
             continue;
         } else if (src[pos] == '/' && pos + 1 < src.size() && src[pos + 1] == '*') {
