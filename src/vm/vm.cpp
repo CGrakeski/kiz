@@ -136,6 +136,8 @@ Vm::Vm(const std::string& file_path_) {
     builtins.insert("str", model::based_str);
     builtins.insert("function", model::based_function);
     builtins.insert("nil", model::based_nil);
+    builtins.insert("Error", model::based_error);
+    builtins.insert("RuntimeError", model::based_runtime_error);
     DEBUG_OUTPUT("current builtins: " + builtins.to_string());
 }
 
@@ -255,13 +257,23 @@ model::Object* Vm::get_stack_top() {
     return stack_top;
 }
 
-void Vm::throw_error(const err::ErrorInfo& err) {
-    std::vector<std::pair<std::string, err::PositionInfo>> positions;
+void Vm::throw_error(const model::Object* err) {
+    auto save_call_stack = call_stack_;
+
+    for (auto frame_it = save_call_stack.rbegin(); frame_it != save_call_stack.rend(); ++frame_it) {
+        const CallFrame* frame = (*frame_it).get();
+        if (frame.try_blocks.empty()) {
+            call_stack_.pop();
+            continue;
+        }
+        // todo
+    }
+
     std::string path;
 
-    // 从调用栈收集位置信息
+    // 报错
     size_t i = 0;
-    for (auto& frame: call_stack_) {
+    for (auto& frame: save_call_stack) {
         // 获取模块路径
         if (const auto m = dynamic_cast<model::Module*>(frame->owner)) {
             path = m->name;
@@ -274,11 +286,9 @@ void Vm::throw_error(const err::ErrorInfo& err) {
             pos = frame->code_object->code.at(frame->pc-1).pos;
         }
         
-        positions.emplace_back(path, pos);
+        err::print_content(path, pos);
         ++i;
     }
-
-    err::traceback_reporter(positions, err);
 }
 
 void Vm::exec(const Instruction& instruction) {
