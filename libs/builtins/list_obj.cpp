@@ -4,7 +4,8 @@ namespace model {
 
 // List.__call__
 model::Object* list_call(model::Object* self, const model::List* args) {
-    return new model::List({});
+    auto obj = new model::List({});
+    return obj;
 }
 
 // List.__bool__
@@ -117,11 +118,9 @@ model::Object* list_contains(model::Object* self, const model::List* args) {
             elem_eq_method, new List({target_elem}), elem
         );
         const auto result = kiz::Vm::get_return_val();
-    
-        const auto result_val = kiz::Vm::check_obj_is_true(result);
 
         // 找到匹配元素，立即返回true
-        if (result_val) new Bool(true);
+        if (kiz::Vm::check_obj_is_true(result)) return new Bool(true);
     }
     
     // 遍历完未找到匹配元素，返回false
@@ -147,5 +146,25 @@ model::Object* list_append(model::Object* self, const model::List* args) {
     self->make_ref();
     return self;
 };
+
+Object* list_next(Object* self, const List* args) {
+    auto curr_idx_it = self->attrs.find("__current_index__");
+    assert(curr_idx_it != nullptr);
+
+    auto curr_idx = curr_idx_it->value;
+    auto idx_obj = dynamic_cast<Int*>(curr_idx);
+    assert(idx_obj != nullptr);
+
+    auto index = idx_obj->val.to_unsigned_long_long();
+
+    auto self_list = dynamic_cast<List*>(self);
+    if (index < self_list->val.size()) {
+        auto res = self_list->val[index];
+        self->attrs.insert("__current_index__", new Int(dep::BigInt(index+1)));
+        return res;
+    }
+    self->attrs.insert("__current_index__", new Int(dep::BigInt(0)));
+    return new Bool(false);
+}
 
 }  // namespace model

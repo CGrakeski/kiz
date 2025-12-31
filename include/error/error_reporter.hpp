@@ -34,9 +34,10 @@ void error_reporter(
     const ErrorInfo& error
 );
 
-void traceback_reporter(
-    const std::vector<std::pair<std::string, PositionInfo>>& positions,
-    const ErrorInfo& error
+
+void context_printer(
+    const std::string& src_path,
+    const PositionInfo& pos
 );
 
 }// namespace err

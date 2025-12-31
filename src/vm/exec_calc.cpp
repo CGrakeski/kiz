@@ -10,13 +10,13 @@ std::tuple<model::Object*, model::Object*> Vm::fetch_two_from_stack_top(
     const std::string& curr_instruction_name
 ) {
     DEBUG_OUTPUT("exec " + curr_instruction_name + " then fetch two from stack top");
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && (curr_instruction_name + ": 操作数栈元素不足（需≥2）").data());
     }
-    model::Object* b = op_stack_.top();
-    op_stack_.pop();
-    model::Object* a = op_stack_.top();
-    op_stack_.pop();
+    model::Object* b = op_stack.top();
+    op_stack.pop();
+    model::Object* a = op_stack.top();
+    op_stack.pop();
     return {a, b};
 }
 
@@ -67,20 +67,20 @@ void Vm::exec_POW(const Instruction& instruction) {
 }
 
 void Vm::exec_NEG(const Instruction& instruction) {
-    const auto raw_call_stack_count = call_stack_.size();
+    const auto raw_call_stack_count = call_stack.size();
 
     DEBUG_OUTPUT("exec neg...");
     auto [a, b] = fetch_two_from_stack_top("neg");
     // check_has_magic(a, "neg");
     //
     // call_function(a->dyn_cast()->magic_add, new model::List({b}), a);
-    // model::Object* result = op_stack_.top();
+    // model::Object* result = op_stack.top();
     //
-    // if (raw_call_stack_count != call_stack_.size()) {
+    // if (raw_call_stack_count != call_stack.size()) {
     //     exec_RET({});
     // }
     // result->make_ref();
-    // op_stack_.push(result);
+    // op_stack.push(result);
 }
 
 // -------------------------- 比较指令 --------------------------
@@ -108,51 +108,51 @@ void Vm::exec_LT(const Instruction& instruction) {
 // -------------------------- 逻辑指令 --------------------------
 void Vm::exec_AND(const Instruction& instruction) {
     DEBUG_OUTPUT("exec and...");
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && "OP_AND: 操作数栈元素不足（需≥2）");
     }
     auto [a, b] = fetch_two_from_stack_top("and");
     if (check_obj_is_true(a) && check_obj_is_true(b))
     {
-        op_stack_.emplace(new model::Bool(true));
+        op_stack.emplace(new model::Bool(true));
     }
 }
 
 void Vm::exec_NOT(const Instruction& instruction) {
     DEBUG_OUTPUT("exec not...");
-    if (op_stack_.size() < 1) {
+    if (op_stack.size() < 1) {
         assert(false && "OP_NOT: 操作数栈元素不足（需≥1）");
     }
-    auto a = op_stack_.top();
-    op_stack_.pop();
+    auto a = op_stack.top();
+    op_stack.pop();
     if (!check_obj_is_true(a))
     {
-        op_stack_.emplace(new model::Bool(true));
+        op_stack.emplace(new model::Bool(true));
     }
 }
 
 void Vm::exec_OR(const Instruction& instruction) {
     DEBUG_OUTPUT("exec or...");
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && "OP_OR: 操作数栈元素不足（需≥2）");
     }
     auto [a, b] = fetch_two_from_stack_top("or");
     if (check_obj_is_true(a) || check_obj_is_true(b))
     {
-        op_stack_.emplace(new model::Bool(true));
+        op_stack.emplace(new model::Bool(true));
     }
 }
 
 void Vm::exec_IS(const Instruction& instruction) {
     DEBUG_OUTPUT("exec is...");
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && "OP_IS: 操作数栈元素不足（需≥2）");
     }
     auto [a, b] = fetch_two_from_stack_top("is");
 
     bool is_same = a == b;
     auto* result = new model::Bool(is_same);
-    op_stack_.push(result);
+    op_stack.push(result);
 }
 
 // -------------------------- 容器指令 --------------------------

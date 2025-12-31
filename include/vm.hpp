@@ -34,7 +34,7 @@ struct Instruction {
 };
 
 struct TryBlockInfo {
-    size_t catch_start;
+    size_t catch_start = 0;
 };
 
 struct CallFrame {
@@ -55,23 +55,26 @@ public:
     static dep::HashMap<model::Module*> loaded_modules;
     static model::Module* main_module;
 
-    static std::stack<model::Object*> op_stack_;
-    static std::vector<std::unique_ptr<CallFrame>> call_stack_;
+    static std::stack<model::Object*> op_stack;
+    static std::vector<std::shared_ptr<CallFrame>> call_stack;
     static dep::HashMap<model::Object*> builtins;
 
-    static bool running_;
+    static bool running;
     static std::string file_path;
+
+    static model::Object* curr_error;
 
     explicit Vm(const std::string& file_path_);
 
     static void set_main_module(model::Module* src_module);
     static void exec_curr_code();
     static void set_curr_code(const model::CodeObject* code_object);
-    static void throw_error (const err::ErrorInfo& err);
+    static void throw_error (err::ErrorInfo error);
     static void load_required_modules(const dep::HashMap<model::Module*>& modules);
     
     static model::Object* get_stack_top();
-    static void exec(const Instruction& instruction);
+
+    static void execute_instruction(const Instruction& instruction);
     static model::Object* get_return_val();
     static CallFrame* fetch_curr_call_frame();
     static model::Object* fetch_one_from_stack_top();
@@ -108,6 +111,10 @@ private:
     static void exec_SET_GLOBAL(const Instruction& instruction);
     static void exec_SET_LOCAL(const Instruction& instruction);
     static void exec_SET_NONLOCAL(const Instruction& instruction);
+    static void exec_TRY_END(const Instruction& instruction);
+    static void exec_TRY_START(const Instruction& instruction);
+    static void exec_IMPORT(const Instruction& instruction);
+    static void exec_LOAD_ERROR(const Instruction& instruction);
     static void exec_JUMP(const Instruction& instruction);
     static void exec_JUMP_IF_FALSE(const Instruction& instruction);
     static void exec_THROW(const Instruction& instruction);

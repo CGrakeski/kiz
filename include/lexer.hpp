@@ -20,7 +20,7 @@ namespace kiz {
 enum class TokenType {
     // 关键字
     Var, Func, If, Else, While, Return, Import, Break, Object,
-    True, False, Nil, End, Next, Nonlocal, Global, Try, Catch, For,
+    True, False, Nil, End, Next, Nonlocal, Global, Try, Catch, For, Throw,
     // 标识符
     Identifier,
     // 赋值运算符
@@ -34,7 +34,7 @@ enum class TokenType {
     ExclamationMark, Plus, Minus, Star, Slash, Backslash,
     Percent, Caret, Bang, Equal, NotEqual,
     Less, LessEqual, Greater, GreaterEqual, Pipe,
-    FatArrow, ThinArrow, DoubleColon,
+    FatArrow, ThinArrow, Colon,
     Not, And, Or, Is, In,
     // 特殊标记
     EndOfFile, EndOfLine, Unknown

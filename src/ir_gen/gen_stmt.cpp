@@ -81,6 +81,9 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             case AstType::IfStmt:
                 gen_if(dynamic_cast<IfStmt*>(stmt.get()));
                 break;
+            case AstType::ForStmt:
+                gen_for(dynamic_cast<ForStmt*>(stmt.get()));
+                break;
             case AstType::WhileStmt:
                 gen_while(dynamic_cast<WhileStmt*>(stmt.get()));
                 break;
@@ -101,6 +104,16 @@ void IRGenerator::gen_block(const BlockStmt* block) {
                 }
                 curr_code_list.emplace_back(
                     Opcode::RET,
+                    std::vector<size_t>{},
+                    stmt->pos
+                );
+                break;
+            }
+            case AstType::ThrowStmt: {
+                auto* throw_stmt = dynamic_cast<ThrowStmt*>(stmt.get());
+                gen_expr(throw_stmt->expr.get());
+                curr_code_list.emplace_back(
+                    Opcode::THROW,
                     std::vector<size_t>{},
                     stmt->pos
                 );
@@ -227,5 +240,78 @@ void IRGenerator::gen_while(WhileStmt* while_stmt) {
 
     block_stack.pop();
 }
+
+void IRGenerator::gen_for(ForStmt* for_stmt) {
+    assert(for_stmt);
+    // 记录循环入口（条件判断开始位置）→ continue跳这里
+    size_t loop_entry_idx = curr_code_list.size();
+
+    curr_code_list.emplace_back(
+        Opcode::MAKE_LIST,
+        std::vector<size_t>{0},
+        for_stmt->pos
+    );
+
+    // 生成循环条件IR
+    gen_expr(for_stmt->iter.get());
+
+    size_t name_idx = get_or_add_name(curr_names, "__next__");
+
+    curr_code_list.emplace_back(
+        Opcode::CALL_METHOD,
+        std::vector{name_idx},
+        for_stmt->pos
+    );
+
+    size_t var_name_idx = get_or_add_name(curr_names, for_stmt->item_var_name);
+    curr_code_list.emplace_back(
+        Opcode::SET_LOCAL,
+        std::vector{var_name_idx},
+        for_stmt->pos
+    );
+
+    curr_code_list.emplace_back(
+        Opcode::LOAD_VAR,
+        std::vector{var_name_idx},
+        for_stmt->pos
+    );
+
+    // 生成JUMP_IF_FALSE指令（目标：循环结束位置，先占位）
+    const size_t jump_if_false_idx = curr_code_list.size();
+    curr_code_list.emplace_back(
+        Opcode::JUMP_IF_FALSE,
+        std::vector<size_t>{0}, // 占位，后续填充为循环结束位置
+        for_stmt->pos
+    );
+
+    auto loop_info = LoopInfo{{}, {}};
+    block_stack.emplace(loop_info);
+
+    // 生成循环体IR
+    gen_block(for_stmt->body.get());
+
+    // 生成JUMP指令，跳回循环入口
+    curr_code_list.emplace_back(
+        Opcode::JUMP,
+        std::vector<size_t>{loop_entry_idx},
+        for_stmt->pos
+    );
+
+    // 填充JUMP_IF_FALSE的目标（循环结束位置 = 当前代码列表长度）
+    size_t loop_exit_idx = curr_code_list.size();
+    curr_code_list[jump_if_false_idx].opn_list[0] = loop_exit_idx;
+
+    for (const auto break_pos : block_stack.top().break_pos) {
+        curr_code_list[break_pos].opn_list[0] = loop_exit_idx;
+    }
+
+    for (const auto continue_pos : block_stack.top().continue_pos) {
+        curr_code_list[continue_pos].opn_list[0] = loop_entry_idx;
+    }
+
+    block_stack.pop();
+
+}
+
 
 }

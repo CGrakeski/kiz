@@ -24,10 +24,11 @@ namespace kiz {
 dep::HashMap<model::Object*> Vm::builtins{};
 dep::HashMap<model::Module*> Vm::loaded_modules{};
 model::Module* Vm::main_module;
-std::stack<model::Object*> Vm::op_stack_{};
-std::vector<std::unique_ptr<CallFrame>> Vm::call_stack_{};
-bool Vm::running_ = false;
+std::stack<model::Object*> Vm::op_stack{};
+std::vector<std::shared_ptr<CallFrame>> Vm::call_stack{};
+bool Vm::running = false;
 std::string Vm::file_path;
+model::Object* Vm::curr_error;
 
 Vm::Vm(const std::string& file_path_) {
     file_path = file_path_;
@@ -75,7 +76,8 @@ Vm::Vm(const std::string& file_path_) {
         auto attr = args->val[0];
         auto attr_str = dynamic_cast<model::String*>(attr);
         assert(attr_str != nullptr);
-        return self->attrs.insert(attr_str->val, args->val[1]);
+        self->attrs.insert(attr_str->val, args->val[1]);
+        return self;
     }));
 
     // Bool 类型魔法方法
@@ -117,6 +119,7 @@ Vm::Vm(const std::string& file_path_) {
     model::based_list->attrs.insert("__eq__", new model::CppFunction(model::list_eq));
     model::based_list->attrs.insert("__call__", new model::CppFunction(model::list_call));
     model::based_list->attrs.insert("__bool__", new model::CppFunction(model::list_bool));
+    model::based_list->attrs.insert("__next__", new model::CppFunction(model::list_next));
     model::based_list->attrs.insert("append", new model::CppFunction(model::list_append));
     model::based_list->attrs.insert("contains", new model::CppFunction(model::list_contains));
     
@@ -128,6 +131,16 @@ Vm::Vm(const std::string& file_path_) {
     model::based_str->attrs.insert("__bool__", new model::CppFunction(model::str_bool));
     model::based_str->attrs.insert("contains", new model::CppFunction(model::str_contains));
 
+    model::based_error->attrs.insert("__call__", new model::CppFunction([](model::Object* self, model::List* args) -> model::Object*
+    {   assert( args->val.size() == 2);
+        auto err_name = args->val[0];
+        auto err_info = args->val[1];
+
+        self->attrs.insert("__name__", err_name);
+        self->attrs.insert("__info__", err_info);
+        return self;
+    }));
+
     builtins.insert("int", model::based_int);
     builtins.insert("bool", model::based_bool);
     builtins.insert("rational", model::based_rational);
@@ -137,7 +150,6 @@ Vm::Vm(const std::string& file_path_) {
     builtins.insert("function", model::based_function);
     builtins.insert("nil", model::based_nil);
     builtins.insert("Error", model::based_error);
-    builtins.insert("RuntimeError", model::based_runtime_error);
     DEBUG_OUTPUT("current builtins: " + builtins.to_string());
 }
 
@@ -149,7 +161,7 @@ void Vm::set_main_module(model::Module* src_module) {
     // 注册为main module
     main_module = src_module;
     // 创建模块级调用帧（CallFrame）：模块是顶层执行单元，对应一个顶层调用帧
-    auto module_call_frame = std::make_unique<CallFrame>(
+    auto module_call_frame = std::make_shared<CallFrame>(CallFrame{
         src_module->name,                // 调用帧名称与模块名一致（便于调试）
 
         src_module,
@@ -157,30 +169,31 @@ void Vm::set_main_module(model::Module* src_module) {
 
         0,                               // 程序计数器初始化为0（从第一条指令开始执行）
         src_module->code->code.size(),   // 执行完所有指令后返回的位置（指令池末尾）
-        src_module->code                 // 关联当前模块的CodeObject
-    );
+        src_module->code,                // 关联当前模块的CodeObject
+        {}
+    });
 
     // 将调用帧压入VM的调用栈
-    call_stack_.emplace_back(std::move(module_call_frame));
+    call_stack.emplace_back(module_call_frame);
 
     // 初始化VM执行状态：标记为"就绪"
     DEBUG_OUTPUT("start running");
-    running_ = true; // 标记VM为运行状态（等待exec触发执行）
-    assert(!call_stack_.empty() && "Vm::set_main_module: 调用栈为空，无法执行指令");
-    auto& module_frame = *call_stack_.back(); // 获取当前模块的调用帧（栈顶）
+    running = true; // 标记VM为运行状态（等待exec触发执行）
+    assert(!call_stack.empty() && "Vm::set_main_module: 调用栈为空，无法执行指令");
+    auto& module_frame = *call_stack.back(); // 获取当前模块的调用帧（栈顶）
     assert(module_frame.code_object != nullptr && "Vm::set_main_module: 当前调用帧无关联CodeObject");
     exec_curr_code();
 }
 
 void Vm::exec_curr_code() {
     // 循环执行当前调用帧下的所有指令
-    while (!call_stack_.empty() && running_) {
-        auto& curr_frame = *call_stack_.back();
+    while (!call_stack.empty() && running) {
+        auto& curr_frame = *call_stack.back();
         // 检查当前帧是否执行完毕
         if (curr_frame.pc >= curr_frame.code_object->code.size()) {
             // 非模块帧则弹出，模块帧则退出循环
-            if (call_stack_.size() > 1) {
-                call_stack_.pop_back();
+            if (call_stack.size() > 1) {
+                call_stack.pop_back();
             } else {
                 break;
             }
@@ -189,9 +202,9 @@ void Vm::exec_curr_code() {
 
         // 执行当前指令
         const Instruction& curr_inst = curr_frame.code_object->code[curr_frame.pc];
-        exec(curr_inst);
+        execute_instruction(curr_inst);
         DEBUG_OUTPUT("curr inst is "+opcode_to_string(curr_inst.opc));
-        DEBUG_OUTPUT("current stack top : " + (op_stack_.empty() ? " " : op_stack_.top()->to_string()));
+        DEBUG_OUTPUT("current stack top : " + (op_stack.empty() ? " " : op_stack.top()->to_string()));
 
         // 修正PC自增条件：仅非跳转/非RET指令自增
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE && curr_inst.opc != Opcode::RET) {
@@ -199,38 +212,38 @@ void Vm::exec_curr_code() {
         }
     }
 
-    DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack_.size()));
+    DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack.size()));
 }
 
 model::Object* Vm::get_return_val() {
-    assert(!op_stack_.empty());
-    return op_stack_.top();
+    assert(!op_stack.empty());
+    return op_stack.top();
 }
 
 CallFrame* Vm::fetch_curr_call_frame() {
-    if ( !call_stack_.empty() ) {
-        return call_stack_.back().get();
+    if ( !call_stack.empty() ) {
+        return call_stack.back().get();
     }
     assert(false);
 }
 
 model::Object* Vm::fetch_one_from_stack_top() {
-    if ( !op_stack_.empty() ) {
-        return op_stack_.top();
+    if ( !op_stack.empty() ) {
+        return op_stack.top();
     }
     assert(false);
 }
 
 void Vm::set_curr_code(const model::CodeObject* code_object) {
-    DEBUG_OUTPUT("exec set_curr_code (覆盖模式)...");
-    DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack_.size()));
+    DEBUG_OUTPUT("execute_instruction set_curr_code (覆盖模式)...");
+    DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack.size()));
 
     // 合法性校验
     assert(code_object != nullptr && "Vm::set_curr_code: 传入的 code_object 不能为 nullptr");
-    assert(!call_stack_.empty() && "Vm::set_curr_code: 调用栈为空，需先通过 set_main_module() 加载模块");
+    assert(!call_stack.empty() && "Vm::set_curr_code: 调用栈为空，需先通过 set_main_module() 加载模块");
 
     // 获取全局模块级调用帧（REPL 共享同一个帧）
-    auto& curr_frame = *call_stack_.back();
+    auto& curr_frame = *call_stack.back();
 
     // ========== 覆盖：常量池 ==========
     curr_frame.code_object->consts = code_object->consts;
@@ -253,45 +266,54 @@ void Vm::load_required_modules(const dep::HashMap<model::Module*>& modules) {
 }
 
 model::Object* Vm::get_stack_top() {
-    auto stack_top = op_stack_.empty() ? nullptr : op_stack_.top();
+    auto stack_top = op_stack.empty() ? nullptr : op_stack.top();
     return stack_top;
 }
 
-void Vm::throw_error(const model::Object* err) {
-    auto save_call_stack = call_stack_;
-
-    for (auto frame_it = save_call_stack.rbegin(); frame_it != save_call_stack.rend(); ++frame_it) {
-        const CallFrame* frame = (*frame_it).get();
-        if (frame.try_blocks.empty()) {
-            call_stack_.pop();
-            continue;
-        }
-        // todo
-    }
+void Vm::throw_error(const err::ErrorInfo error) {
+    // auto save_call_stack = call_stack;
+    //
+    // for (auto frame_it = save_call_stack.rbegin(); frame_it != save_call_stack.rend(); ++frame_it) {
+    //     const CallFrame* frame = (*frame_it).get();
+    //     if (frame.try_blocks.empty()) {
+    //         call_stack.pop();
+    //         continue;
+    //     }
+    //     // todo
+    // }
 
     std::string path;
 
     // 报错
+    std::cout << Color::BRIGHT_RED << "\nTrace Back: " << Color::RESET << std::endl;
     size_t i = 0;
-    for (auto& frame: save_call_stack) {
+    for (auto& frame: call_stack) {
         // 获取模块路径
         if (const auto m = dynamic_cast<model::Module*>(frame->owner)) {
             path = m->name;
         }
 
         err::PositionInfo pos{};
-        if (i == call_stack_.size() - 1) {
+        if (i == call_stack.size() - 1) {
             pos = frame->code_object->code.at(frame->pc).pos;
         } else {
             pos = frame->code_object->code.at(frame->pc-1).pos;
         }
         
-        err::print_content(path, pos);
+        err::context_printer(path, pos);
         ++i;
     }
+
+    // 错误信息（类型加粗红 + 内容白）
+    std::cout << Color::BOLD << Color::BRIGHT_RED << error.name
+              << Color::RESET << Color::WHITE << " : " << error.content
+              << Color::RESET << std::endl;
+    std::cout << std::endl;
+
+    throw KizStopRunningSignal();
 }
 
-void Vm::exec(const Instruction& instruction) {
+void Vm::execute_instruction(const Instruction& instruction) {
     switch (instruction.opc) {
         case Opcode::OP_ADD:          exec_ADD(instruction);          break;
         case Opcode::OP_SUB:          exec_SUB(instruction);          break;
@@ -319,6 +341,10 @@ void Vm::exec(const Instruction& instruction) {
         case Opcode::LOAD_CONST:      exec_LOAD_CONST(instruction);    break;
         case Opcode::SET_GLOBAL:      exec_SET_GLOBAL(instruction);    break;
         case Opcode::SET_LOCAL:       exec_SET_LOCAL(instruction);     break;
+        case Opcode::TRY_START:       exec_TRY_START(instruction);     break;
+        case Opcode::TRY_END:         exec_TRY_END(instruction);       break;
+        case Opcode::IMPORT:          exec_IMPORT(instruction);        break;
+        case Opcode::LOAD_ERROR:      exec_LOAD_ERROR(instruction);    break;
         case Opcode::SET_NONLOCAL:    exec_SET_NONLOCAL(instruction);  break;
         case Opcode::JUMP:            exec_JUMP(instruction);          break;
         case Opcode::JUMP_IF_FALSE:   exec_JUMP_IF_FALSE(instruction); break;
@@ -326,8 +352,8 @@ void Vm::exec(const Instruction& instruction) {
         case Opcode::POP_TOP:         exec_POP_TOP(instruction);       break;
         case Opcode::SWAP:            exec_SWAP(instruction);          break;
         case Opcode::COPY_TOP:        exec_COPY_TOP(instruction);      break;
-        case Opcode::STOP:            exec_STOP(instruction);           break;
-        default:                      assert(false && "exec: 未知 opcode");
+        case Opcode::STOP:            exec_STOP(instruction);          break;
+        default:                      assert(false && "execute_instruction: 未知 opcode");
     }
 }
 

@@ -55,7 +55,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         }
 
         // 返回值压入操作数栈
-        op_stack_.push(return_val);
+        op_stack.push(return_val);
 
         DEBUG_OUTPUT("ok to call CppFunction...");
         DEBUG_OUTPUT("CppFunction return: " + return_val->to_string());
@@ -78,16 +78,18 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
 
         // 创建新调用帧
 
-        auto new_frame = std::make_unique<CallFrame>(
+        auto new_frame = std::make_shared<CallFrame>(CallFrame{
              func->name,
 
              func,   // owner
              dep::HashMap<model::Object*>(), // 初始空局部变量表
 
             0,                               // 程序计数器初始化为0（从第一条指令开始执行）
-            call_stack_.back()->pc + 1,   // 执行完所有指令后返回的位置（指令池末尾）
-            func->code                 // 关联当前模块的CodeObject
-        );
+            call_stack.back()->pc + 1,   // 执行完所有指令后返回的位置（指令池末尾）
+            func->code,                 // 关联当前模块的CodeObject
+
+            {}
+        });
 
         // 储存self
         if (self) {
@@ -119,7 +121,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
         }
 
         // 压入新调用帧，更新程序计数器
-        call_stack_.emplace_back(std::move(new_frame));
+        call_stack.emplace_back(std::move(new_frame));
 
     // 处理对象魔术方法__call__
     } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
@@ -135,21 +137,21 @@ void Vm::exec_CALL(const Instruction& instruction) {
     DEBUG_OUTPUT("exec call...");
 
     // 栈中至少需要 2 个元素
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && "CALL: 操作数栈元素不足（需≥2：函数对象 + 参数列表）");
     }
-    if (call_stack_.empty()) {
+    if (call_stack.empty()) {
         assert(false && "CALL: 无活跃调用帧");
     }
 
     // 弹出栈顶元素 : 函数对象
-    model::Object* func_obj = op_stack_.top();
-    op_stack_.pop();
+    model::Object* func_obj = op_stack.top();
+    op_stack.pop();
     func_obj->make_ref();  // 临时持有函数对象，避免中途被释放
 
     // 弹出栈顶-1元素 : 参数列表
-    model::Object* args_obj = op_stack_.top();
-    op_stack_.pop();
+    model::Object* args_obj = op_stack.top();
+    op_stack.pop();
 
     DEBUG_OUTPUT("弹出函数对象: " + func_obj->to_string());
     DEBUG_OUTPUT("弹出参数列表: " + args_obj->to_string());
@@ -161,19 +163,19 @@ void Vm::exec_CALL_METHOD(const Instruction& instruction) {
     DEBUG_OUTPUT("exec call method...");
 
     // 弹出栈顶元素 : 源对象
-    auto obj = op_stack_.top();
-    op_stack_.pop();
+    auto obj = op_stack.top();
+    op_stack.pop();
     obj->make_ref();
 
     // 弹出栈顶-1元素 : 参数列表
-    model::Object* args_obj = op_stack_.top();
-    op_stack_.pop();
+    model::Object* args_obj = op_stack.top();
+    op_stack.pop();
 
     DEBUG_OUTPUT("弹出对象: " + obj->to_string());
     DEBUG_OUTPUT("弹出参数列表: " + args_obj->to_string());
 
     size_t name_idx = instruction.opn_list[0];
-    CallFrame* curr_frame = call_stack_.back().get();
+    CallFrame* curr_frame = call_stack.back().get();
 
     if (name_idx >= curr_frame->code_object->names.size()) {
         assert(false && "GET_ATTR: 属性名索引超出范围");
@@ -191,29 +193,29 @@ void Vm::exec_CALL_METHOD(const Instruction& instruction) {
 void Vm::exec_RET(const Instruction& instruction) {
     DEBUG_OUTPUT("exec ret...");
     // 兼容顶层调用帧返回
-    if (call_stack_.size() < 2) {
-        if (!op_stack_.empty()) {
-            op_stack_.pop(); // 清理栈顶返回值
+    if (call_stack.size() < 2) {
+        if (!op_stack.empty()) {
+            op_stack.pop(); // 清理栈顶返回值
         }
-        call_stack_.pop_back(); // 弹出最后一个帧
+        call_stack.pop_back(); // 弹出最后一个帧
         return;
     }
 
-    std::unique_ptr<CallFrame> curr_frame = std::move(call_stack_.back());
-    call_stack_.pop_back();
+    auto curr_frame = call_stack.back();
+    call_stack.pop_back();
 
-    CallFrame* caller_frame = call_stack_.back().get();
+    CallFrame* caller_frame = call_stack.back().get();
 
     model::Object* return_val = new model::Nil();
     return_val->make_ref();
-    if (!op_stack_.empty()) {
+    if (!op_stack.empty()) {
         return_val->del_ref();
-        return_val = op_stack_.top();
-        op_stack_.pop();
+        return_val = op_stack.top();
+        op_stack.pop();
         return_val->make_ref();
     }
 
     caller_frame->pc = curr_frame->return_to_pc;
-    op_stack_.push(return_val);
+    op_stack.push(return_val);
 }
 }

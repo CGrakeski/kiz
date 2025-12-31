@@ -32,6 +32,7 @@ void register_keywords() {
 
     keywords["try"] = TokenType::Try;
     keywords["catch"] = TokenType::Catch;
+    keywords["throw"] = TokenType::Throw;
     keywords["import"] = TokenType::Import;
     keywords["nonlocal"] = TokenType::Nonlocal;
     keywords["global"] = TokenType::Global;
@@ -125,13 +126,9 @@ std::vector<Token> Lexer::tokenize(const std::string& src, size_t lineno_start) 
             ++pos;
             ++col;
         } else if (src[pos] == ':') {
+            tokens.emplace_back(TokenType::Colon, ":", lineno, start_col);
             ++pos;
             ++col;
-            if (src[pos] == ':') {
-                ++pos;
-                ++col;
-                tokens.emplace_back(TokenType::DoubleColon, "::", lineno, start_col);
-            }
         } else if (src[pos] == '=') {
             tokens.emplace_back(TokenType::Assign, "=", lineno, start_col);
             ++pos;

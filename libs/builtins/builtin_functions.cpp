@@ -42,7 +42,7 @@ model::Object* help(model::Object* self, const model::List* args) {
 
 model::Object* breakpoint(model::Object* self, const model::List* args) {
     size_t i = 0;
-    for (auto& frame: kiz::Vm::call_stack_) {
+    for (auto& frame: kiz::Vm::call_stack) {
         std::cout << "Frame [" << i << "] " << frame->name << "\n";
         std::cout << "=================================" << "\n";
         std::cout << "Owner: " << frame->owner->to_string() << "\n";

@@ -110,7 +110,7 @@ inline auto based_rational = new Object();
 inline auto based_bool = new Object();
 inline auto based_nil = new Object();
 inline auto based_str = new Object();
-
+inline auto based_error = new Object();
 
 class List;
 
@@ -198,6 +198,24 @@ public:
 }
 };
 
+class Int : public Object {
+public:
+    dep::BigInt val;
+
+    static constexpr ObjectType TYPE = ObjectType::OT_Int;
+    [[nodiscard]] ObjectType get_type() const override { return TYPE; }
+
+    explicit Int(dep::BigInt val) : val(std::move(val)) {
+        attrs.insert("__parent__", based_int);
+    }
+    explicit Int() : val(dep::BigInt(0)) {
+        attrs.insert("__parent__", based_int);
+    }
+    [[nodiscard]] std::string to_string() const override {
+        return val.to_string();
+    }
+};
+
 class List : public Object {
 public:
     std::vector<Object*> val;
@@ -207,6 +225,7 @@ public:
 
     explicit List(std::vector<Object*> val) : val(std::move(val)) {
         attrs.insert("__parent__", based_list);
+        attrs.insert("__current_index__", new Int(dep::BigInt(0)));
     }
     [[nodiscard]] std::string to_string() const override {
         std::string result = "[";
@@ -225,23 +244,6 @@ public:
     }
 };
 
-class Int : public Object {
-public:
-    dep::BigInt val;
-
-    static constexpr ObjectType TYPE = ObjectType::OT_Int;
-    [[nodiscard]] ObjectType get_type() const override { return TYPE; }
-
-    explicit Int(dep::BigInt val) : val(std::move(val)) {
-        attrs.insert("__parent__", based_int);
-    }
-    explicit Int() : val(dep::BigInt(0)) {
-        attrs.insert("__parent__", based_int);
-    }
-    [[nodiscard]] std::string to_string() const override {
-        return val.to_string();
-    }
-};
 
 class Rational : public Object {
 public:

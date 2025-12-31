@@ -71,22 +71,4 @@ void error_reporter(const std::string& src_path, const PositionInfo& pos, const 
     throw KizStopRunningSignal();
 }
 
-
-void traceback_reporter(
-    const std::vector<std::pair<std::string, PositionInfo>>& positions,
-    const ErrorInfo& error
-) {
-    std::cout << Color::BRIGHT_RED << "\nTrace Back: " << Color::RESET << std::endl;
-    for (const auto& [src_path, pos] : positions) {
-        context_printer(src_path, pos);
-    }
-    // 错误信息（类型加粗红 + 内容白）
-    std::cout << Color::BOLD << Color::BRIGHT_RED << error.name
-              << Color::RESET << Color::WHITE << " : " << error.content
-              << Color::RESET << std::endl;
-    std::cout << std::endl;
-
-    throw KizStopRunningSignal();
-}
-
 } // namespace err

@@ -30,7 +30,7 @@ enum class AstType {
     BlockStmt, IfStmt, WhileStmt,
     ReturnStmt, ImportStmt, ForStmt, TryStmt, CatchStmt,
     NullStmt, ExprStmt,
-    BreakStmt, NextStmt
+    BreakStmt, NextStmt, ThrowStmt
 };
 
 // AST 基类
@@ -209,6 +209,16 @@ struct WhileStmt final :  Statement {
     }
 };
 
+// throw语句
+struct ThrowStmt final :  Statement{
+    std::unique_ptr<Expression> expr;
+    explicit ThrowStmt(const err::PositionInfo& pos, std::unique_ptr<Expression> e)
+        : expr(std::move(e)) {
+        this->pos = pos;
+        this->ast_type = AstType::ThrowStmt;
+    }
+};
+
 // for语句
 struct ForStmt final :  Statement {
     std::string item_var_name;
@@ -218,7 +228,8 @@ struct ForStmt final :  Statement {
         std::string iv,
         std::unique_ptr<Expression> i,
         std::unique_ptr<BlockStmt> b
-    ) : item_var_name(std::move(iv), iter(std::move(i)), body(std::move(b)) {
+    ) : item_var_name(std::move(iv)), iter(std::move(i)), body(std::move(b)) {
+        this->pos = pos;
         this->ast_type = AstType::ForStmt;
     }
 };
@@ -229,10 +240,11 @@ struct CatchStmt final :  Statement {
     std::string var_name;
     std::unique_ptr<BlockStmt> catch_block;
     explicit CatchStmt(const err::PositionInfo& pos,
-        std::unique_ptr<Expression> e;
-        std::string v;
-        std::unique_ptr<BlockStmt> c;
+        std::unique_ptr<Expression> e,
+        std::string v,
+        std::unique_ptr<BlockStmt> c
     ) : error(std::move(e)), var_name(std::move(v)), catch_block(std::move(c)) {
+        this->pos = pos;
         this->ast_type = AstType::CatchStmt;
     }
 };
@@ -243,8 +255,9 @@ struct TryStmt final :  Statement {
     std::vector<std::unique_ptr<CatchStmt>> catch_blocks;
     explicit TryStmt(const err::PositionInfo& pos,
         std::unique_ptr<BlockStmt> t,
-        std::vector<CatchStmt> c
-    ) : try_block(std::move(t), catch_blocks(std::move(c)) {
+        std::vector<std::unique_ptr<CatchStmt>> c
+    ) : try_block(std::move(t)), catch_blocks(std::move(c)) {
+        this->pos = pos;
         this->ast_type = AstType::TryStmt;
     }
 };

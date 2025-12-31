@@ -17,17 +17,17 @@ void Vm::exec_MAKE_LIST(const Instruction& instruction) {
     size_t elem_count = instruction.opn_list[0];
 
     // 校验：栈中元素个数 ≥ 要打包的个数
-    if (op_stack_.size() < elem_count) {
+    if (op_stack.size() < elem_count) {
         assert(false && ("MAKE_LIST: 栈元素不足（需" + std::to_string(elem_count) +
-                        "个，实际" + std::to_string(op_stack_.size()) + "个）").c_str());
+                        "个，实际" + std::to_string(op_stack.size()) + "个）").c_str());
     }
 
     // 步骤1：弹出栈顶 elem_count 个元素（栈是LIFO，弹出顺序是 argN → arg2 → arg1）
     std::vector<model::Object*> elem_list;
     elem_list.reserve(elem_count);  // 预分配空间，避免扩容
     for (size_t i = 0; i < elem_count; ++i) {
-        model::Object* elem = op_stack_.top();
-        op_stack_.pop();
+        model::Object* elem = op_stack.top();
+        op_stack.pop();
 
         // 校验：元素不能为 nullptr
         if (elem == nullptr) {
@@ -45,9 +45,25 @@ void Vm::exec_MAKE_LIST(const Instruction& instruction) {
     // 步骤3：创建 List 对象，压入栈
     auto* list_obj = new model::List(elem_list);
     list_obj->make_ref();  // List 自身引用计std::to_stringstd::to_string((数+1
-    op_stack_.push(list_obj);
+    op_stack.push(list_obj);
 
     DEBUG_OUTPUT("make_list: 打包 " + std::to_string(elem_count) + " 个元素为 List，压栈成功");
+}
+
+void Vm::exec_TRY_END(const Instruction& instruction) {
+
+}
+
+void Vm::exec_TRY_START(const Instruction& instruction) {
+
+}
+
+void Vm::exec_IMPORT(const Instruction& instruction) {
+
+}
+
+void Vm::exec_LOAD_ERROR(const Instruction& instruction) {
+
 }
 
 // -------------------------- 跳转指令 --------------------------
@@ -57,22 +73,22 @@ void Vm::exec_JUMP(const Instruction& instruction) {
         assert(false && "JUMP: 无目标pc索引");
     }
     size_t target_pc = instruction.opn_list[0];
-    CallFrame* curr_frame = call_stack_.back().get();
+    CallFrame* curr_frame = call_stack.back().get();
     if (target_pc > curr_frame->code_object->code.size()) {
         assert(false && "JUMP: 目标pc超出字节码范围");
     }
-    call_stack_.back()->pc = target_pc;
+    call_stack.back()->pc = target_pc;
 }
 
 void Vm::exec_JUMP_IF_FALSE(const Instruction& instruction) {
     DEBUG_OUTPUT("exec jump_if_false...");
     // 检查
-    if (op_stack_.empty()) assert(false && "JUMP_IF_FALSE: 操作数栈空");
+    if (op_stack.empty()) assert(false && "JUMP_IF_FALSE: 操作数栈空");
     if (instruction.opn_list.empty()) assert(false && "JUMP_IF_FALSE: 无目标pc");
 
     // 取出条件值
-    model::Object* cond = op_stack_.top();
-    op_stack_.pop();
+    model::Object* cond = op_stack.top();
+    op_stack.pop();
     const size_t target_pc = instruction.opn_list[0];
 
     bool need_jump = check_obj_is_true(cond) ? false: true;
@@ -80,15 +96,15 @@ void Vm::exec_JUMP_IF_FALSE(const Instruction& instruction) {
     if (need_jump) {
         // 跳转逻辑
         DEBUG_OUTPUT("need jump");
-        CallFrame* curr_frame = call_stack_.back().get();
+        CallFrame* curr_frame = call_stack.back().get();
         if (target_pc > curr_frame->code_object->code.size()) {
             cond->del_ref();
             assert(false && "JUMP_IF_FALSE: 目标pc超出范围");
         }
         DEBUG_OUTPUT("JUMP_IF_FALSE: 跳转至 PC=" + std::to_string(target_pc));
-        call_stack_.back()->pc = target_pc;
+        call_stack.back()->pc = target_pc;
     } else {
-        call_stack_.back()->pc++;
+        call_stack.back()->pc++;
     }
 
     // 释放条件值引用
@@ -105,12 +121,12 @@ void Vm::exec_THROW(const Instruction& instruction) {
 // -------------------------- 栈操作 --------------------------
 void Vm::exec_POP_TOP(const Instruction& instruction) {
     DEBUG_OUTPUT("exec pop_top...");
-    if (op_stack_.empty()) {
+    if (op_stack.empty()) {
         assert(false && "POP_TOP: 操作数栈为空");
     }
 
-    model::Object* top = op_stack_.top();
-    op_stack_.pop();
+    model::Object* top = op_stack.top();
+    op_stack.pop();
 
     if (top == nullptr) {
         assert(false && "POP_TOP: 栈顶元素为nil（非法）");
@@ -125,31 +141,31 @@ void Vm::exec_POP_TOP(const Instruction& instruction) {
 
 void Vm::exec_SWAP(const Instruction& instruction) {
     DEBUG_OUTPUT("exec swap...");
-    if (op_stack_.size() < 2) {
+    if (op_stack.size() < 2) {
         assert(false && "SWAP: 操作数栈元素不足（需≥2）");
     }
-    model::Object* a = op_stack_.top();
-    op_stack_.pop();
-    model::Object* b = op_stack_.top();
-    op_stack_.pop();
-    op_stack_.push(a);
-    op_stack_.push(b);
+    model::Object* a = op_stack.top();
+    op_stack.pop();
+    model::Object* b = op_stack.top();
+    op_stack.pop();
+    op_stack.push(a);
+    op_stack.push(b);
 }
 
 
 void Vm::exec_COPY_TOP(const Instruction& instruction) {
     DEBUG_OUTPUT("exec copy_top...");
-    if (op_stack_.empty()) {
+    if (op_stack.empty()) {
         assert(false && "COPY_TOP: 操作数栈为空");
     }
-    model::Object* top = op_stack_.top();
+    model::Object* top = op_stack.top();
     top->make_ref();
-    op_stack_.emplace(top);
+    op_stack.emplace(top);
 }
 
 void Vm::exec_STOP(const Instruction& instruction) {
     DEBUG_OUTPUT("exec stop...");
-    running_ = false;
+    running = false;
 }
 
 }

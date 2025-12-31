@@ -41,6 +41,7 @@ public:
     [[nodiscard]] static model::Module* gen_mod(
         const std::string& module_name, model::CodeObject* module_code
     );
+    void gen_for(ForStmt* for_stmt);
     void gen_block(const BlockStmt* block);
 
     void gen_literal(Expression* expr);

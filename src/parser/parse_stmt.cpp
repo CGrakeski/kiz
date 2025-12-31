@@ -236,7 +236,7 @@ std::unique_ptr<Statement> Parser::parse_stmt() {
 
             skip_start_of_block();
             auto catch_block = parse_block(TokenType::Catch);
-            catch_blocks.push_back(std::make_unique<CatchStmt>(tok.pos, name, std::move(expr), std::move(catch_block)));
+            catch_blocks.push_back(std::make_unique<CatchStmt>(tok.pos, std::move(expr), name, std::move(catch_block)));
         }
 
         skip_token("end");

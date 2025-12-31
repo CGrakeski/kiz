@@ -57,5 +57,6 @@ Object* list_contains(Object* self, const List* args);
 Object* list_append(Object* self, const List* args);
 Object* list_call(Object* self, const List* args);
 Object* list_bool(Object* self, const List* args);
+Object* list_next(Object* self, const List* args);
 
 }
