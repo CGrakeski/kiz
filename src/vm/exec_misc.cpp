@@ -3,6 +3,7 @@
 
 #include "models.hpp"
 #include "vm.hpp"
+#include "builtins/include/builtin_functions.hpp"
 
 namespace kiz {
 
@@ -50,20 +51,34 @@ void Vm::exec_MAKE_LIST(const Instruction& instruction) {
     DEBUG_OUTPUT("make_list: 打包 " + std::to_string(elem_count) + " 个元素为 List，压栈成功");
 }
 
-void Vm::exec_TRY_END(const Instruction& instruction) {
-
+void Vm::exec_TRY_START(const Instruction& instruction) {
+    size_t catch_start = instruction.opn_list[0];
+    call_stack.back()->try_blocks.emplace_back(catch_start);
 }
 
-void Vm::exec_TRY_START(const Instruction& instruction) {
+void Vm::exec_TRY_END(const Instruction& instruction) {
+    call_stack.back()->try_blocks.pop_back();
+
+    const size_t end_catch_pc = instruction.opn_list[0];
+    call_stack.back()->pc = end_catch_pc;
 
 }
 
 void Vm::exec_IMPORT(const Instruction& instruction) {
+    size_t name_idx = instruction.opn_list[0];
+    std::string name = call_stack.back()->code_object->names[name_idx];
+    // todo
 
 }
 
 void Vm::exec_LOAD_ERROR(const Instruction& instruction) {
+    const auto err = curr_error;
+    op_stack.push(err);
+}
 
+void Vm::exec_IS_INSTANCE(const Instruction& instruction) {
+    auto [a, b] = fetch_two_from_stack_top("is instance");
+    op_stack.emplace(builtin::check_based_object(a, b));
 }
 
 // -------------------------- 跳转指令 --------------------------
@@ -114,8 +129,10 @@ void Vm::exec_JUMP_IF_FALSE(const Instruction& instruction) {
 // -------------------------- 异常处理 --------------------------
 void Vm::exec_THROW(const Instruction& instruction) {
     DEBUG_OUTPUT("exec throw...");
-    // Todo
-    std::exit(4);
+    model::Object* top = op_stack.top();
+    op_stack.pop();
+
+    throw_error(top);
 }
 
 // -------------------------- 栈操作 --------------------------

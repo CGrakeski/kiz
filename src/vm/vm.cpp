@@ -136,9 +136,11 @@ Vm::Vm(const std::string& file_path_) {
         auto err_name = args->val[0];
         auto err_info = args->val[1];
 
-        self->attrs.insert("__name__", err_name);
-        self->attrs.insert("__info__", err_info);
-        return self;
+        auto err = new model::Object();
+        err->attrs.insert("__parent__", self);
+        err->attrs.insert("__name__", err_name);
+        err->attrs.insert("__info__", err_info);
+        return err;
     }));
 
     builtins.insert("int", model::based_int);
@@ -270,17 +272,58 @@ model::Object* Vm::get_stack_top() {
     return stack_top;
 }
 
-void Vm::throw_error(const err::ErrorInfo error) {
-    // auto save_call_stack = call_stack;
-    //
-    // for (auto frame_it = save_call_stack.rbegin(); frame_it != save_call_stack.rend(); ++frame_it) {
-    //     const CallFrame* frame = (*frame_it).get();
-    //     if (frame.try_blocks.empty()) {
-    //         call_stack.pop();
-    //         continue;
-    //     }
-    //     // todo
-    // }
+void Vm::native_fn_throw(const std::string& name, const std::string& content) {
+    const auto err_name = new model::String(name);
+    const auto err_info = new model::String(content);
+
+    const auto err_obj = new model::Object();
+    err_obj->attrs.insert("__parent__", model::based_error);
+    err_obj->attrs.insert("__name__", err_name);
+    err_obj->attrs.insert("__info__", err_info);
+    throw_error(err_obj);
+}
+
+void Vm::throw_error(model::Object* error) {
+    curr_error = error;
+
+    size_t frames_to_pop = 0;
+    CallFrame* target_frame = nullptr;
+    size_t catch_pc = 0;
+
+    // 逆序遍历调用栈，寻找最近的 try 块（且当前不在该 catch 块内）
+    for (auto frame_it = call_stack.rbegin(); frame_it != call_stack.rend(); ++frame_it) {
+        CallFrame* frame = (*frame_it).get();
+        if (!frame->try_blocks.empty()) {
+            target_frame = frame;
+            catch_pc = frame->try_blocks.back().catch_start;
+            // 关键判断：如果当前 PC 已经在 catch 块内（>= catch_pc），则不重复捕获
+            if (frame->pc >= catch_pc) {
+                target_frame = nullptr; // 取消当前 try 块的捕获
+                frames_to_pop++;        // 继续向上查找更外层的 try 块
+                continue;
+            }
+            break;
+        }
+        frames_to_pop++;
+    }
+
+    // 如果找到有效的 try 块（当前不在 catch 内）
+    if (target_frame) {
+        // 弹出多余的栈帧
+        for (size_t i = 0; i < frames_to_pop; ++i) {
+            call_stack.pop_back();
+        }
+        // 设置 pc 到 catch 块开始
+        target_frame->pc = catch_pc;
+        return;
+    }
+
+    auto error_name_it = error->attrs.find("__name__");
+    auto err_content_it = error->attrs.find("__info__");
+    assert(error_name_it != nullptr);
+    assert(err_content_it != nullptr);
+    auto error_name = error_name_it->value->to_string();
+    auto error_content = err_content_it->value->to_string();
 
     std::string path;
 
@@ -299,14 +342,14 @@ void Vm::throw_error(const err::ErrorInfo error) {
         } else {
             pos = frame->code_object->code.at(frame->pc-1).pos;
         }
-        
+
         err::context_printer(path, pos);
         ++i;
     }
 
     // 错误信息（类型加粗红 + 内容白）
-    std::cout << Color::BOLD << Color::BRIGHT_RED << error.name
-              << Color::RESET << Color::WHITE << " : " << error.content
+    std::cout << Color::BOLD << Color::BRIGHT_RED << error_name
+              << Color::RESET << Color::WHITE << " : " << error_content
               << Color::RESET << std::endl;
     std::cout << std::endl;
 
@@ -352,6 +395,7 @@ void Vm::execute_instruction(const Instruction& instruction) {
         case Opcode::POP_TOP:         exec_POP_TOP(instruction);       break;
         case Opcode::SWAP:            exec_SWAP(instruction);          break;
         case Opcode::COPY_TOP:        exec_COPY_TOP(instruction);      break;
+        case Opcode::IS_INSTANCE:     exec_IS_INSTANCE(instruction);      break;
         case Opcode::STOP:            exec_STOP(instruction);          break;
         default:                      assert(false && "execute_instruction: 未知 opcode");
     }

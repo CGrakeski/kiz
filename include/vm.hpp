@@ -69,7 +69,7 @@ public:
     static void set_main_module(model::Module* src_module);
     static void exec_curr_code();
     static void set_curr_code(const model::CodeObject* code_object);
-    static void throw_error (err::ErrorInfo error);
+    static void throw_error (model::Object* error);
     static void load_required_modules(const dep::HashMap<model::Module*>& modules);
     
     static model::Object* get_stack_top();
@@ -83,6 +83,8 @@ public:
     static model::Object* get_attr(const model::Object* obj, const std::string& attr);
     static bool check_obj_is_true(model::Object* obj);
     static void call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self);
+
+    static void native_fn_throw(const std::string& name, const std::string& content);
 
 private:
     static void exec_ADD(const Instruction& instruction);
@@ -121,6 +123,7 @@ private:
     static void exec_POP_TOP(const Instruction& instruction);
     static void exec_SWAP(const Instruction& instruction);
     static void exec_COPY_TOP(const Instruction& instruction);
+    static void exec_IS_INSTANCE(const Instruction& instruction);
     static void exec_STOP(const Instruction& instruction);
 };
 

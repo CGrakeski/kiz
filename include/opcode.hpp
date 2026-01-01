@@ -21,7 +21,7 @@ enum class Opcode {
     SET_GLOBAL, SET_LOCAL, SET_NONLOCAL,
     JUMP, JUMP_IF_FALSE, THROW, 
     MAKE_LIST, MAKE_DICT,
-    IMPORT, TRY_START, TRY_END, LOAD_ERROR,
+    IMPORT, TRY_START, TRY_END, LOAD_ERROR, IS_INSTANCE,
     POP_TOP, SWAP, COPY_TOP, STOP
 };
 
@@ -84,6 +84,7 @@ inline std::string opcode_to_string(Opcode opc) {
         case Opcode::TRY_START:   return "TRY_START";
         case Opcode::TRY_END:     return "TRY_END";
         case Opcode::LOAD_ERROR:  return "LOAD_ERROR";
+        case Opcode::IS_INSTANCE: return "IS_INSTANCE";
         
         // 兜底
         default:                  return "UNKNOWN_OPCODE(" + std::to_string(static_cast<int>(opc)) + ")";

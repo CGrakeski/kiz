@@ -87,6 +87,9 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             case AstType::WhileStmt:
                 gen_while(dynamic_cast<WhileStmt*>(stmt.get()));
                 break;
+            case AstType::TryStmt:
+                gen_try(dynamic_cast<TryStmt*>(stmt.get()));
+                break;
             case AstType::ReturnStmt: {
                 // 返回语句：生成返回值表达式IR + RET指令
                 auto* ret_stmt = dynamic_cast<ReturnStmt*>(stmt.get());
@@ -312,6 +315,77 @@ void IRGenerator::gen_for(ForStmt* for_stmt) {
     block_stack.pop();
 
 }
+
+void IRGenerator::gen_try(TryStmt* try_stmt) {
+    assert(try_stmt);
+
+    size_t try_start_idx = curr_code_list.size();
+    curr_code_list.emplace_back(
+        Opcode::TRY_START,
+        std::vector<size_t>{0},  // 占位
+        try_stmt->pos
+    );
+
+    gen_block(try_stmt->try_block.get());
+
+    size_t try_end_idx = curr_code_list.size();
+    curr_code_list.emplace_back(
+        Opcode::TRY_END,
+        std::vector<size_t>{0},  // 占位
+        try_stmt->pos
+    );
+
+    size_t catch_start_idx = curr_code_list.size();
+    curr_code_list[try_start_idx].opn_list[0] = catch_start_idx;
+
+    std::vector<size_t> catch_jump_to_all_end_idxs;
+    for (const auto& catch_stmt : try_stmt->catch_blocks) {
+        curr_code_list.emplace_back(
+            Opcode::LOAD_ERROR, std::vector<size_t>{}, catch_stmt->pos
+        );
+        gen_expr(catch_stmt->error.get());
+        curr_code_list.emplace_back(
+            Opcode::IS_INSTANCE, std::vector<size_t>{}, catch_stmt->pos
+        );
+        size_t curr_jump_if_false_idx = curr_code_list.size();
+        curr_code_list.emplace_back(
+            Opcode::JUMP_IF_FALSE, std::vector<size_t>{0}, catch_stmt->pos  // 占位
+        );
+
+        curr_code_list.emplace_back(
+            Opcode::LOAD_ERROR, std::vector<size_t>{}, catch_stmt->pos
+        );
+        const size_t name_idx = get_or_add_name(curr_names, catch_stmt->var_name);
+        curr_code_list.emplace_back(
+            Opcode::SET_LOCAL, std::vector<size_t>{name_idx}, catch_stmt->pos
+        );
+
+        gen_block(catch_stmt->catch_block.get());
+        catch_jump_to_all_end_idxs.emplace_back(curr_code_list.size());
+        curr_code_list.emplace_back(
+            Opcode::JUMP, std::vector<size_t>{0}, catch_stmt->pos  // 占位
+        );
+
+        size_t end_catch_idx = curr_code_list.size();
+        curr_code_list[curr_jump_if_false_idx].opn_list[0] = end_catch_idx;
+    }
+
+    curr_code_list.emplace_back(
+        Opcode::LOAD_ERROR, std::vector<size_t>{}, try_stmt->pos
+    );
+
+    curr_code_list.emplace_back(
+        Opcode::THROW, std::vector<size_t>{}, try_stmt->pos
+    );
+
+    size_t end_all_catch_idx = curr_code_list.size();
+    curr_code_list[try_end_idx].opn_list[0] = end_all_catch_idx;
+
+    for (auto idx : catch_jump_to_all_end_idxs) {
+        curr_code_list[idx].opn_list[0] = end_all_catch_idx;
+    }
+}
+
 
 
 }
