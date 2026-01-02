@@ -22,7 +22,7 @@
 
 namespace err {
 
-dep::HashMap<std::string> SrcManager::opened_files;
+std::unordered_map<std::string, std::string> SrcManager::opened_files {};
 
 /**
  * @brief 从指定文件中提取指定行范围的内容（行号从1开始）
@@ -35,9 +35,7 @@ std::string SrcManager::get_slice(const std::string& src_path, const int& src_li
     DEBUG_OUTPUT("get slice");
     // 先获取完整文件内容（依赖缓存机制）
     std::string file_content = get_file_by_path(src_path);
-    if (file_content.empty()) {
-        return "";
-    }
+    DEBUG_OUTPUT("file_content is:" + file_content + "\n");
 
     DEBUG_OUTPUT("try to slice");
     // 按行分割文件内容（兼容 Windows \r\n 和 Linux \n 换行符）
@@ -86,17 +84,34 @@ std::string SrcManager::get_slice(const std::string& src_path, const int& src_li
 std::string SrcManager::get_file_by_path(std::string path) {
     DEBUG_OUTPUT("get_file_by_path");
     // 检查缓存是否已存在该文件
-    DEBUG_OUPPUT(opened_files.to_string());
-    auto it = opened_files.find(path);
-    if (it != nullptr) {
-        return it->value;
+    DEBUG_OUTPUT(path);
+    DEBUG_OUTPUT("finding");
+    const auto it = opened_files.find(path);
+    if (it != opened_files.end()) {
+        DEBUG_OUTPUT("in opened files !");
+
+        // 先打印 key 确保是对的
+        DEBUG_OUTPUT("found key: " + it->first);
+
+        // 打印 value 的长度
+        DEBUG_OUTPUT("value length: " + std::to_string(it->second.size()));
+
+        // 打印 value 的前几个字符，避免格式化问题
+        std::string safe_content = it->second;
+        if (safe_content.size() > 20) {
+            safe_content = safe_content.substr(0, 20) + "...";
+        }
+        DEBUG_OUTPUT(std::string("content is: ") + safe_content);
+
+        return it->second;
     }
+    DEBUG_OUTPUT("no found");
 
     // 缓存未命中，新打开文件并加入缓存
-    std::string file_content = open_new_file(path);
+    std::string file_content = read_file(path);
     DEBUG_OUTPUT(file_content);
     DEBUG_OUTPUT(path+" "+file_content);
-    opened_files.insert(path, file_content);
+    opened_files.emplace(path, file_content);
     DEBUG_OUTPUT("finish get_file_by_path");
     return file_content;
 }
@@ -106,8 +121,8 @@ std::string SrcManager::get_file_by_path(std::string path) {
  * @param path 文件路径
  * @return 文件完整内容（打开失败会抛出std::runtime_error）
  */
-std::string SrcManager::open_new_file(const std::string& path) {
-    DEBUG_OUTPUT("open_new_file: " + path);
+std::string SrcManager::read_file(const std::string& path) {
+    DEBUG_OUTPUT("read_file: " + path);
     std::ifstream kiz_file(path, std::ios::binary);
     if (!kiz_file.is_open()) {
         throw KizStopRunningSignal("Failed to open file: " + path);
@@ -131,6 +146,7 @@ std::string SrcManager::open_new_file(const std::string& path) {
 
     DEBUG_OUTPUT("File read successfully, size: " + std::to_string(file_size));
     DEBUG_OUTPUT(file_content);
+    DEBUG_OUTPUT("finish read_file");
     return file_content;
 }
 

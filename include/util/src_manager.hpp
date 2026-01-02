@@ -9,8 +9,8 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <filesystem>
+#include <unordered_map>
 
 #include "hashmap.hpp"
 
@@ -21,7 +21,7 @@ namespace err {
 class SrcManager {
 public:
     // key: 文件路径, value: 文件内容
-    static dep::HashMap<std::string> opened_files;
+    static std::unordered_map<std::string, std::string> opened_files;
 
     // 获取切片
     static std::string get_slice(const std::string& src_path, const int& src_line_start, const int& src_line_end);
@@ -30,7 +30,7 @@ public:
     static std::string get_file_by_path(std::string path);
 
     // 打开kiz文件并将其添加到opened_files, 返回文件内容
-    static std::string open_new_file(const std::string& path);
+    static std::string read_file(const std::string& path);
 };
 
 } // namespace err

@@ -35,6 +35,7 @@ True Nil False
     ~~- **feature** 完成try-catch throw语句~~
 
     **之后的计划**
+    - **fixme** 确保引用计数正确 
     - **feature** 完成 >= <= != (通过添加操作指令OP_GE, OP_LE, OP_NE)
     - **feature** 完成所有builtin函数
     - **feature** 实现完整oop语法(语句用法见examples/oop.kiz)
