@@ -26,7 +26,6 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
     auto* args_list = dynamic_cast<model::List*>(args_obj);
 
     if (!args_list) {
-        func_obj->del_ref();  // 释放函数对象引用
         assert(false && "CALL: 栈顶-1元素非List类型（参数必须封装为列表）");
     }
     DEBUG_OUTPUT("start to call function");
@@ -69,8 +68,6 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
             ? args_list->val.size() + 1
             : args_list->val.size();
         if (actual_argc != required_argc) {
-            func_obj->del_ref();
-            args_obj->del_ref();
             std::cerr << ("CALL: 参数数量不匹配（需" + std::to_string(required_argc) +
                             "个，实际" + std::to_string(actual_argc) + "个）");
             assert(false);
@@ -100,8 +97,6 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
         // 从参数列表中提取参数，存入调用帧 locals
         for (size_t i = 0; i < required_argc; ++i) {
             if (i >= new_frame->code_object->names.size()) {
-                func_obj->del_ref();
-                args_obj->del_ref();
                 assert(false && "CALL: 参数名索引超出范围");
             }
 
@@ -110,8 +105,6 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
 
             // 校验参数非空
             if (param_val == nullptr) {
-                func_obj->del_ref();
-                args_obj->del_ref();
                 assert(false && ("CALL: 参数" + std::to_string(i) + "为nil（不允许空参数）").c_str());
             }
 

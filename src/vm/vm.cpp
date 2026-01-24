@@ -32,17 +32,6 @@ model::Error* Vm::curr_error {};
 dep::HashMap<model::Object*> Vm::std_modules {};
 
 
-std::pair<std::string, std::string> get_err_name_and_msg(const model::Object* err_obj) {
-    assert(err_obj != nullptr);
-    auto err_name_it = err_obj->attrs.find("__name__");
-    auto err_msg_it = err_obj->attrs.find("__msg__");
-    assert(err_name_it != nullptr);
-    assert(err_msg_it != nullptr);
-    auto err_name = err_name_it->value->to_string();
-    auto err_msg = err_msg_it->value->to_string();
-    return {err_name, err_msg};
-}
-
 Vm::Vm(const std::string& file_path_) {
     file_path = file_path_;
     DEBUG_OUTPUT("entry builtin functions...");
@@ -113,6 +102,39 @@ void Vm::exec_curr_code() {
     }
 
     DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack.size()));
+}
+
+void Vm::exec_code_until_start_frame() {
+    size_t old_call_stack_size = call_stack.size();
+    while (!call_stack.empty() && running) {
+        auto& curr_frame = *call_stack.back();
+        // 检查当前帧是否执行完毕
+        if (curr_frame.pc >= curr_frame.code_object->code.size()) {
+            // 非模块帧则弹出，模块帧则退出循环
+            if (call_stack.size() > 1) {
+                call_stack.pop_back();
+            } else {
+                break;
+            }
+            continue;
+        }
+
+        // 执行当前指令
+        const Instruction& curr_inst = curr_frame.code_object->code[curr_frame.pc];
+        try {
+            if (curr_inst.opc == Opcode::RET and old_call_stack_size == call_stack.size()) {
+                call_stack.pop_back();
+                return;
+            }
+            execute_instruction(curr_inst);
+        } catch (NativeFuncError& e) {
+            instruction_throw(e.name, e.msg);
+        }
+        // 修正PC自增条件：仅非跳转/非RET指令自增
+        if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE && curr_inst.opc != Opcode::RET) {
+            curr_frame.pc++;
+        }
+    }
 }
 
 model::Object* Vm::get_return_val() {
@@ -194,6 +216,19 @@ void Vm::instruction_throw(const std::string& name, const std::string& content) 
     DEBUG_OUTPUT("err_obj pos size = "+std::to_string(err_obj->positions.size()));
     curr_error = err_obj;
     throw_error();
+}
+
+
+// 辅助函数
+std::pair<std::string, std::string> get_err_name_and_msg(const model::Object* err_obj) {
+    assert(err_obj != nullptr);
+    auto err_name_it = err_obj->attrs.find("__name__");
+    auto err_msg_it = err_obj->attrs.find("__msg__");
+    assert(err_name_it != nullptr);
+    assert(err_msg_it != nullptr);
+    auto err_name = err_name_it->value->to_string();
+    auto err_msg = err_msg_it->value->to_string();
+    return {err_name, err_msg};
 }
 
 void Vm::throw_error() {
@@ -295,5 +330,7 @@ void Vm::execute_instruction(const Instruction& instruction) {
         default:                      assert(false && "execute_instruction: 未知 opcode");
     }
 }
+
+
 
 } // namespace kiz

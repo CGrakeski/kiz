@@ -88,6 +88,7 @@ public:
 
     static void set_main_module(model::Module* src_module);
     static void exec_curr_code();
+    static void exec_code_until_start_frame();
     static void set_and_exec_curr_code(const model::CodeObject* code_object);
     static void load_required_modules(const dep::HashMap<model::Module*>& modules);
 

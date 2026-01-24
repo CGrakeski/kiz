@@ -177,6 +177,7 @@ Object* list_foreach(Object* self, const List* args) {
     dep::BigInt idx = 0;
     for (auto e : self_list->val) {
         kiz::Vm::call(func_obj, new List({e}), nullptr);
+        kiz::Vm::exec_code_until_start_frame();
         idx += 1;
     }
     return new Nil();
@@ -203,25 +204,43 @@ Object* list_extend(Object* self, const List* args) {
 }
 
 Object* list_pop(Object* self, const List* args) {
-
+    auto self_list = dynamic_cast<List*>(self);
+    assert(self_list != nullptr);
+    self_list->val.pop_back();
+    return new Nil();
 }
 
 Object* list_insert(Object* self, const List* args) {
+    auto self_list = dynamic_cast<List*>(self);
+    assert(self_list != nullptr);
+    if (args->val.size() == 2) {
+        auto value_obj = args->val[0];
+        auto idx_obj = args->val[1];
+        auto idx_int = dynamic_cast<Int*>(idx_obj);
+        assert(idx_int != nullptr);
+        auto idx = idx_int->val.to_unsigned_long_long();
+        if (idx < self_list->val.size()) {
+            self_list->val[idx] = value_obj;
+        }
+    }
+    return new Nil();
+}
 
+Object* list_count(Object* self, const List* args) {
+    return new Nil();
 }
 
 Object* list_find(Object* self, const List* args) {
+    return new Nil();
 
 }
 
 Object* list_map(Object* self, const List* args) {
-
+    return new Nil();
 }
-Object* list_count(Object* self, const List* args) {
 
-}
 Object* list_filter(Object* self, const List* args) {
-
+    return new Nil();
 }
 
 }  // namespace model
