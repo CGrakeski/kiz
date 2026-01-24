@@ -15,6 +15,7 @@
 #include "../kiz.hpp"
 #include "color.hpp"
 #include "../util/src_manager.hpp"
+#include "input_helper/repl_input_helper.hpp"
 
 namespace ui {
 
@@ -28,7 +29,8 @@ std::string Repl::read(const std::string& prompt) {
     std::string result;
     std::cout << Color::BRIGHT_MAGENTA << prompt << Color::RESET;
     std::cout.flush();
-    std::getline(std::cin, result);
+    // std::getline(std::cin, result);
+    result = helper::get_whole_input(&std::cin, &std::cout);
     return result;
 }
 
@@ -37,12 +39,12 @@ void Repl::loop() {
     while (is_running_) {
         try {
             auto code = read(">>>");
-            auto old_code_it = err::SrcManager::opened_files.find(file_path);
-            if (old_code_it != nullptr) {
-                err::SrcManager::opened_files[file_path] = old_code_it->second + "\n" + code;
-            } else {
-                err::SrcManager::opened_files[file_path] = code;
-            }
+        auto old_code_it = err::SrcManager::opened_files.find(file_path);
+        if (old_code_it != err::SrcManager::opened_files.end()) {
+            err::SrcManager::opened_files[file_path] = old_code_it->second + "\n" + code;
+        } else {
+            err::SrcManager::opened_files[file_path] = code;
+        }
 
             add_to_history(code);
             eval_and_print(code);
@@ -57,9 +59,21 @@ void Repl::eval_and_print(const std::string& cmd) {
     kiz::Parser parser(file_path);
     kiz::IRGenerator ir_gen(file_path);
 
-    const auto tokens = lexer.tokenize(cmd, get_history().size());
+    // 计算当前输入的起始行号：历史记录中的总行数 + 1
+    auto old_code_it = err::SrcManager::opened_files.find(file_path);
+    size_t total_lines = 1;
+    if (old_code_it != err::SrcManager::opened_files.end()) {
+        // 计算已有代码中的总行数
+        for (char c : old_code_it->second) {
+            if (c == '\n') {
+                total_lines++;
+            }
+        }
+    }
+    
+    const auto tokens = lexer.tokenize(cmd, total_lines);
     auto ast = parser.parse(tokens);
-    if (!ast->statements.empty() and
+    if (!ast->statements.empty() &&
         dynamic_cast<kiz::ExprStmt*>(ast->statements.back().get())
     )   should_print = true;
 
@@ -75,7 +89,7 @@ void Repl::eval_and_print(const std::string& cmd) {
     DEBUG_OUTPUT("repl print");
     auto stack_top = vm_.fetch_one_from_stack_top();
     if (stack_top != nullptr) {
-        if (not dynamic_cast<model::Nil*>(stack_top) and should_print) {
+        if (! dynamic_cast<model::Nil*>(stack_top) && should_print) {
             std::cout << stack_top->to_string() << std::endl;
         }
     }

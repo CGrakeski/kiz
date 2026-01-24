@@ -56,8 +56,8 @@ std::string SrcManager::get_slice(const std::string& src_path, const int& src_li
         src_line_start > src_line_end || 
         static_cast<size_t>(src_line_end) > total_lines
     ) {
-        // std::cerr << "[Warning] Invalid line range: start=" << src_line_start
-        //          << ", end=" << src_line_end << " (total lines: " << total_lines << ")\n";
+        DEBUG_OUTPUT( "[Warning] Invalid line range: start=" << src_line_start
+                  << ", end=" << src_line_end << " (total lines: " << total_lines << ")\n");
         return "";
     }
 

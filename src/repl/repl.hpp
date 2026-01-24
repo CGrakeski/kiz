@@ -19,6 +19,7 @@
 #include "../lexer/lexer.hpp"
 #include "../parser/parser.hpp"
 #include "../vm/vm.hpp"
+#include "../input_helper/repl_input_helper.hpp"
 
 namespace ui {
 

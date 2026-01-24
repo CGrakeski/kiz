@@ -39,13 +39,15 @@ void context_printer(
     DEBUG_OUTPUT("getting line");
     std::string error_line = SrcManager::get_slice(src_path, src_line_start, src_line_end);
     DEBUG_OUTPUT(error_line);
-    if (error_line.empty()) {
+    // 只有当切片范围无效时才显示错误信息，空行是有效的
+    bool is_valid_range = src_line_start >= 1 && src_line_end >= 1 && src_line_start <= src_line_end;
+    if (error_line.empty() && !is_valid_range) {
         error_line = "[Can't slice the source file with "
         + std::to_string(src_line_start) + "," + std::to_string(src_line_start)
         + "," + std::to_string(src_col_start) + "," + std::to_string(src_col_end) + "]";
     }
 
-    DEBUG_OUTPUT("making ^");
+    DEBUG_OUTPUT("making error pointer ( ^ )");
     // 计算箭头位置：行号前缀长度 + 列偏移（列从1开始）
     const std::string line_prefix = std::to_string(src_line_start) + " | ";
     const size_t caret_offset = line_prefix.size() + (src_col_start - 1);
