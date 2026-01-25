@@ -198,9 +198,14 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         auto tok = skip_token("object");
         skip_start_of_block();
         const std::string name = skip_token().text;
+        std::string parent_name;
+        if (curr_token().type == TokenType::Colon) {
+            skip_token(":");
+            parent_name = skip_token().text;
+        }
         auto object_block = parse_block();
         skip_token("end");
-        return std::make_unique<ObjectStmt>(tok.pos, name, std::move(object_block));
+        return std::make_unique<ObjectStmt>(tok.pos, name, parent_name, std::move(object_block));
     }
     
     // 解析throw语句

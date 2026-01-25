@@ -222,17 +222,17 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         );
     }
     if (tok.type == TokenType::LBrace) {
-        std::vector<std::pair<std::string, std::unique_ptr<Expr>>> init_vec{};
-        while (curr_token().type != TokenType::RBrace) {
-            auto key = skip_token().text;
-            skip_token("=");
-            auto val = parse_expression();
-            if (curr_token().type == TokenType::Comma) skip_token(",");
-            if (curr_token().type == TokenType::Semicolon) skip_token(";");
-            init_vec.emplace_back(std::move(key), std::move(val));
-        }
-        skip_token("}");
-        return std::make_unique<DictDeclExpr>(curr_token().pos, "<lambda_dict>", std::move(init_vec));
+        // std::vector<std::pair<std::string, std::unique_ptr<Expr>>> init_vec{};
+        // while (curr_token().type != TokenType::RBrace) {
+        //     auto key = skip_token().text;
+        //     skip_token("=");
+        //     auto val = parse_expression();
+        //     if (curr_token().type == TokenType::Comma) skip_token(",");
+        //     if (curr_token().type == TokenType::Semicolon) skip_token(";");
+        //     init_vec.emplace_back(std::move(key), std::move(val));
+        // }
+        // skip_token("}");
+        // return std::make_unique<DictExpr>(curr_token().pos, "<lambda_dict>", std::move(init_vec));
     }
     if (tok.type == TokenType::LBracket) {
         auto param = parse_args(TokenType::RBracket);

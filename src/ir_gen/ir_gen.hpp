@@ -46,7 +46,7 @@ public:
     void gen_block(const BlockStmt* block);
 
     void gen_fn_call(CallExpr* expr);
-    void gen_dict(DictDeclExpr* expr);
+    void gen_dict(DictExpr* expr);
     void gen_expr(Expr* expr);
 
     void gen_if(IfStmt* if_stmt);

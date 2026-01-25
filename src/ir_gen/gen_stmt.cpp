@@ -78,9 +78,32 @@ void IRGenerator::gen_block(const BlockStmt* block) {
 
                 curr_code_list.emplace_back(
                     Opcode::SET_LOCAL,
-                    std::vector<size_t>{name_idx},
+                    std::vector{name_idx},
                     stmt->pos
                 );
+
+                if (!obj_decl->parent_name.empty()) {
+                    const size_t parent_name_idx = get_or_add_name(curr_names, obj_decl->parent_name);
+
+                    curr_code_list.emplace_back(
+                        Opcode::LOAD_VAR,
+                        std::vector{name_idx},
+                        stmt->pos
+                    );
+
+                    curr_code_list.emplace_back(
+                        Opcode::LOAD_VAR,
+                        std::vector{parent_name_idx},
+                        stmt->pos
+                    );
+
+                    const size_t parent_text_idx = get_or_add_name(curr_names, "__parent__");
+                    curr_code_list.emplace_back(
+                        Opcode::SET_ATTR,
+                        std::vector{parent_text_idx},
+                        stmt->pos
+                    );
+                }
 
                 for (const auto& sub_assign: obj_decl->body->statements) {
                     const auto sub_assign_stmt = dynamic_cast<AssignStmt*>(sub_assign.get());

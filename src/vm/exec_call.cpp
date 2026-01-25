@@ -117,11 +117,14 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
         call_stack.emplace_back(std::move(new_frame));
 
     // 处理对象魔术方法__call__
-    } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
-        DEBUG_OUTPUT("call callable obj");
-        call(callable_it->value, args_obj, func_obj);
     } else {
-        assert(false && "CALL: 栈顶元素非Function/CppFunction类型");
+        try {
+            const auto callable = get_attr(func_obj, "__call__");
+            DEBUG_OUTPUT("call callable obj");
+            call(callable, args_obj, func_obj);
+        } catch (NativeFuncError& e) {
+            throw NativeFuncError("TypeError", "try to call an uncallable object");
+        }
     }
 }
 

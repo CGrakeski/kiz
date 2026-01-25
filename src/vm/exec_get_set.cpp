@@ -110,9 +110,7 @@ void Vm::exec_SET_GLOBAL(const Instruction& instruction) {
     var_val->make_ref();
 
     auto var_it = global_frame->locals.find(var_name);
-    if (var_it != nullptr) {
-        var_it->value->del_ref();
-    }
+
     global_frame->locals.insert(var_name, var_val);
 }
 
@@ -135,9 +133,7 @@ void Vm::exec_SET_LOCAL(const Instruction& instruction) {
     DEBUG_OUTPUT("var val: " + var_val->to_string());
 
     auto var_it = curr_frame->locals.find(var_name);
-    if (var_it != nullptr) {
-        var_it->value->del_ref();
-    }
+
     curr_frame->locals.insert(var_name, var_val);
     DEBUG_OUTPUT("ok to set_local...");
     DEBUG_OUTPUT("current local at [" + std::to_string(call_stack.size()) + "] " +  curr_frame->locals.to_string());
@@ -216,9 +212,7 @@ void Vm::exec_SET_ATTR(const Instruction& instruction) {
     std::string attr_name = curr_frame->code_object->names[name_idx];
 
     auto attr_it = obj->attrs.find(attr_name);
-    if (attr_it != nullptr) {
-        attr_it->value->del_ref();
-    }
+
     attr_val->make_ref();
     obj->attrs.insert(attr_name, attr_val);
 }
