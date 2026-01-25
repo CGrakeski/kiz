@@ -133,7 +133,31 @@ void IRGenerator::gen_expr(Expr* expr) {
                 Opcode::GET_ATTR,
                 std::vector<size_t>{name_idx},
                 expr->pos
-                );
+            );
+            break;
+        }
+        case AstType::GetItemExpr: {
+            auto get_mem_expr = dynamic_cast<GetItemExpr*>(expr);
+            size_t arg_count = get_mem_expr->params.size();
+
+            for (auto& arg : get_mem_expr->params) {
+                gen_expr(arg.get());
+            }
+
+            // 生成 OP_MAKE_LIST 指令：将栈顶 arg_count 个元素打包成参数列表，压回栈
+            curr_code_list.emplace_back(
+                Opcode::MAKE_LIST,
+                std::vector{arg_count},
+                get_mem_expr->pos
+            );
+
+            gen_expr(get_mem_expr->father.get());
+
+            curr_code_list.emplace_back(
+                Opcode::GET_ITEM,
+                std::vector<size_t>{},
+                get_mem_expr->pos
+            );
             break;
         }
         case AstType::FuncDeclExpr: {

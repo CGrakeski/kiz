@@ -136,6 +136,8 @@ private:
     static void exec_RET(const Instruction& instruction);
     static void exec_GET_ATTR(const Instruction& instruction);
     static void exec_SET_ATTR(const Instruction& instruction);
+    static void exec_GET_ITEM(const Instruction& instruction);
+    static void exec_SET_ITEM(const Instruction& instruction);
     static void exec_CALL_METHOD(const Instruction& instruction);
     static void exec_LOAD_VAR(const Instruction& instruction);
     static void exec_LOAD_CONST(const Instruction& instruction);

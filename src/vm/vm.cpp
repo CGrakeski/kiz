@@ -316,6 +316,8 @@ void Vm::execute_instruction(const Instruction& instruction) {
         case Opcode::CALL_METHOD:     exec_CALL_METHOD(instruction);   break;
         case Opcode::GET_ATTR:        exec_GET_ATTR(instruction);      break;
         case Opcode::SET_ATTR:        exec_SET_ATTR(instruction);      break;
+        case Opcode::GET_ITEM:        exec_GET_ITEM(instruction);      break;
+        case Opcode::SET_ITEM:        exec_SET_ITEM(instruction);      break;
         case Opcode::LOAD_VAR:        exec_LOAD_VAR(instruction);      break;
         case Opcode::LOAD_CONST:      exec_LOAD_CONST(instruction);    break;
         case Opcode::SET_GLOBAL:      exec_SET_GLOBAL(instruction);    break;

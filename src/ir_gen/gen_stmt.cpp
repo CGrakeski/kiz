@@ -219,6 +219,21 @@ void IRGenerator::gen_block(const BlockStmt* block) {
                 );
                 break;
             }
+            case AstType::SetItemStmt: {
+                const auto* set_item = dynamic_cast<SetItemStmt*>(stmt.get());
+                const auto* get_item = dynamic_cast<GetItemExpr*>(set_item->g_item.get());
+
+                gen_expr(get_item->father.get()); // 生成对象IR
+                gen_expr(get_item->params[0].get()); // 生成第一参数(仅支持一个参数)
+                gen_expr(set_item->val.get());   // 生成值IR
+
+                curr_code_list.emplace_back(
+                    Opcode::SET_ITEM,
+                    std::vector<size_t>{},
+                    stmt->pos
+                );
+                break;
+            }
             default:
                 assert(false && "gen_block: 未处理的语句类型");
         }

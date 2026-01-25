@@ -189,7 +189,7 @@ public:
         return res;
     }
 
-    /// 哈希函数（保持原有）
+    /// 哈希函数
     [[nodiscard]] BigInt hash() const {
         size_t mant_hash = std::hash<std::string>()(mantissa_.to_string());
         size_t exp_hash = std::hash<int>()(exponent_);

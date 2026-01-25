@@ -279,13 +279,22 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
     auto expr = parse_expression();
     if (expr != nullptr and curr_token().text == "=") {
         if (dynamic_cast<GetMemberExpr*>(expr.get())) {
-            DEBUG_OUTPUT("parsing get member");
+            DEBUG_OUTPUT("parsing set member");
             skip_token("=");
             auto value = parse_expression();
             skip_end_of_ln();
 
             auto set_mem = std::make_unique<SetMemberStmt>(curr_token().pos, std::move(expr), std::move(value));
             return set_mem;
+        }
+        if (dynamic_cast<GetItemExpr*>(expr.get())) {
+            DEBUG_OUTPUT("parsing set item");
+            skip_token("=");
+            auto value = parse_expression();
+            skip_end_of_ln();
+
+            auto set_item = std::make_unique<SetItemStmt>(curr_token().pos, std::move(expr), std::move(value));
+            return set_item;
         }
         // 非成员访问表达式后不能跟 =
         assert("invalid assignment target: expected member access");

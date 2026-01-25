@@ -15,4 +15,9 @@ Object* nil_eq(Object* self, const List* args) {
     return new Bool(another_nil != nullptr);
 }
 
+// Nil.__hash__
+Object* nil_hash(Object* self, const List* args) {
+    return new Int(0);
+}
+
 }  // namespace model

@@ -23,4 +23,14 @@ Object* bool_eq(Object* self, const List* args) {
     return new Bool(self_bool->val == another_bool->val);
 };
 
+// Bool.__hash__
+Object* bool_hash(Object* self, const List* args) {
+    auto self_bool = dynamic_cast<Bool*>(self);
+    if (self_bool->val == true) {
+        return new Int(1);
+    }
+    return new Int(0);
+}
+
+
 }  // namespace model

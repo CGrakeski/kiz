@@ -226,6 +226,27 @@ Object* list_insert(Object* self, const List* args) {
     return new Nil();
 }
 
+Object* list_setitem(Object* self, const List* args) {
+    assert(args->val.size() == 2);
+    auto self_list = dynamic_cast<List*>(self);
+    auto idx_obj = dynamic_cast<Int*>(args->val[0]);
+    assert(idx_obj != nullptr);
+    auto index = idx_obj->val.to_unsigned_long_long();
+
+    auto value_obj = args->val[1];
+    self_list->val[index] = value_obj;
+    return new Nil();
+}
+
+Object* list_getitem(Object* self, const List* args) {
+    auto self_list = dynamic_cast<List*>(self);
+    auto idx_obj = dynamic_cast<Int*>(builtin::get_one_arg(args));
+    assert(idx_obj != nullptr);
+
+    auto index = idx_obj->val.to_unsigned_long_long();
+    return self_list->val[index];
+}
+
 Object* list_count(Object* self, const List* args) {
     return new Nil();
 }

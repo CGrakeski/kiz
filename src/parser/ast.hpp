@@ -276,6 +276,17 @@ struct SetMemberStmt final :  Stmt {
     }
 };
 
+// 设置项
+struct SetItemStmt final :  Stmt {
+    std::unique_ptr<Expr> g_item;
+    std::unique_ptr<Expr> val;
+    SetItemStmt(const err::PositionInfo& pos, std::unique_ptr<Expr> g_mem, std::unique_ptr<Expr> val)
+        : g_item(std::move(g_mem)), val(std::move(val)) {
+        this->pos = pos;
+        this->ast_type = AstType::SetItemStmt;
+    }
+};
+
 // 函数调用
 struct CallExpr final :  Expr {
     std::unique_ptr<Expr> callee;

@@ -217,4 +217,24 @@ void Vm::exec_SET_ATTR(const Instruction& instruction) {
     obj->attrs.insert(attr_name, attr_val);
 }
 
+void Vm::exec_GET_ITEM(const Instruction& instruction) {
+    model::Object* obj = fetch_one_from_stack_top();
+
+    auto args_list = dynamic_cast<model::List*>(fetch_one_from_stack_top());
+    assert(args_list != nullptr);
+
+    call(get_attr(obj, "__getitem__"), args_list, obj);
+}
+
+void Vm::exec_SET_ITEM(const Instruction& instruction) {
+    model::Object* value = fetch_one_from_stack_top();
+    model::Object* arg = fetch_one_from_stack_top();
+    model::Object* obj = fetch_one_from_stack_top();
+
+    // 获取对象自身的 __setitem__
+    model::Object* setitem_method = get_attr(obj, "__setitem__");
+
+    call(setitem_method, new model::List({arg, value}), obj);
+}
+
 }
