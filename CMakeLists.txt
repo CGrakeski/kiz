@@ -53,19 +53,22 @@ set(SRC_FILES
         ${PROJECT_SOURCE_DIR}/src/error/error_reporter.cpp
         ${PROJECT_SOURCE_DIR}/src/util/src_manager.cpp
         ${PROJECT_SOURCE_DIR}/src/repl/repl.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/decimal_obj.cpp
 )
 
 # lib 模块（仅列cpp）
 set(LIB_SRC_FILES
-        ${PROJECT_SOURCE_DIR}/libs/builtins/bool_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/int_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/rational_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/nil_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/str_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/list_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/dict_obj.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/bool_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/int_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/rational_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/decimal_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/nil_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/str_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/list_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/dict_methods.cpp
         ${PROJECT_SOURCE_DIR}/libs/builtins/builtin_functions.cpp
+        ${PROJECT_SOURCE_DIR}/libs/io/io_lib.cpp
+
+
 )
 
 # ===================== 文件存在性检查（仅检查cpp） =====================

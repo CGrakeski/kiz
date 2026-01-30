@@ -47,7 +47,7 @@ void Vm::entry_builtins() {
         return new model::Bool(self == other_obj);
     }));
     model::based_obj->attrs.insert("__str__", new model::NativeFunction([](const model::Object* self, const model::List* args) -> model::Object* {
-        return new model::String(self->to_string());
+        return new model::String(self->debug_string());
     }));
 
     model::based_obj->attrs.insert("__getitem__", new model::NativeFunction([](const model::Object* self, const model::List* args) -> model::Object* {

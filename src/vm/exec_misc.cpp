@@ -177,7 +177,7 @@ void Vm::exec_THROW(const Instruction& instruction) {
     curr_error = top;
     op_stack.pop();
 
-    throw_error();
+    handle_throw();
 }
 
 void Vm::exec_CREATE_OBJECT(const Instruction& instruction) {

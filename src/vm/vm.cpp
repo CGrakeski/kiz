@@ -36,6 +36,7 @@ Vm::Vm(const std::string& file_path_) {
     file_path = file_path_;
     DEBUG_OUTPUT("entry builtin functions...");
     entry_builtins();
+    entry_std_modules();
 }
 
 void Vm::set_main_module(model::Module* src_module) {
@@ -174,7 +175,7 @@ void Vm::instruction_throw(const std::string& name, const std::string& content) 
     err_obj->attrs.insert("__msg__", err_msg);
     DEBUG_OUTPUT("err_obj pos size = "+std::to_string(err_obj->positions.size()));
     curr_error = err_obj;
-    throw_error();
+    handle_throw();
 }
 
 
@@ -185,12 +186,12 @@ std::pair<std::string, std::string> get_err_name_and_msg(const model::Object* er
     auto err_msg_it = err_obj->attrs.find("__msg__");
     assert(err_name_it != nullptr);
     assert(err_msg_it != nullptr);
-    auto err_name = err_name_it->value->to_string();
-    auto err_msg = err_msg_it->value->to_string();
+    auto err_name = err_name_it->value->debug_string();
+    auto err_msg = err_msg_it->value->debug_string();
     return {err_name, err_msg};
 }
 
-void Vm::throw_error() {
+void Vm::handle_throw() {
     assert(curr_error != nullptr);
 
     size_t frames_to_pop = 0;

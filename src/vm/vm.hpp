@@ -103,7 +103,7 @@ public:
     static void instruction_throw(const std::string& name, const std::string& content);
     static auto gen_pos_info()
         -> std::vector<std::pair<std::string, err::PositionInfo>>;
-    static void throw_error();
+    static void handle_throw();
 
     /// 如果新增了调用栈，执行循环仅处理新增的模块栈帧（call_stack.size() > old_stack_size），不影响原有调用栈
     static void call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self);

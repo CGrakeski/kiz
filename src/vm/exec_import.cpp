@@ -162,12 +162,19 @@ void Vm::exec_IMPORT(const Instruction& instruction) {
         content = err::SrcManager::get_file_by_path(
             path_combine(get_exe_abs_dir(), actually_found_path, fs::path(module_path)).string()
         );
-    } else if (auto std_mod_it = std_modules.find(module_path)) {
-        auto std_mod_init_func = dynamic_cast<model::NativeFunction*>(std_mod_it->value);
-        assert(std_mod_init_func != nullptr);
-        model::Object* return_val = std_mod_init_func->func(std_mod_it->value, new model::List({}));
-        return_val->make_ref();
-        op_stack.push(return_val);
+    } else if (auto std_init_it = std_modules.find(module_path)) {
+        auto std_init_func = dynamic_cast<model::NativeFunction*>(std_init_it->value);
+        assert(std_init_func != nullptr);
+
+        model::Object* return_val = std_init_func->func(std_init_func, new model::List({}));
+        assert(return_val != nullptr);
+
+        auto module_obj = dynamic_cast<model::Module*>(return_val);
+        assert(module_obj != nullptr);
+
+        module_obj->make_ref();
+        call_stack.back()->locals.insert(module_path, module_obj);
+        loaded_modules.insert(module_path, module_obj);
         return;
     } else {
         throw NativeFuncError("PathError", "Undefined module named "+module_path);
@@ -244,7 +251,7 @@ void Vm::exec_IMPORT(const Instruction& instruction) {
             assert(module_name_str != nullptr);
             module_name = module_name_str->val;
         }
-        // mod_attr_obj->attrs.insert("__owner_module__", module_obj);
+        local_object->attrs.insert("__owner_module__", module_obj);
         local_object->make_ref();
         module_obj->attrs.insert(name, local_object);
     }

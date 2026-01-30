@@ -21,7 +21,7 @@ model::Object* Vm::get_attr(const model::Object* obj, const std::string& attr_na
     }
     
     throw NativeFuncError("NameError",
-        "Undefined attribute '" + attr_name + "'" + " of " + obj->to_string()
+        "Undefined attribute '" + attr_name + "'" + " of " + obj->debug_string()
     );
 }
 
@@ -59,6 +59,7 @@ void Vm::exec_LOAD_VAR(const Instruction& instruction) {
         if (auto owner_module_it = call_stack.back()->owner->attrs.find("__owner_module__")) {
             auto owner_module = dynamic_cast<model::Module*>(owner_module_it->value);
             assert(owner_module != nullptr);
+
             auto mod_var_it = owner_module->attrs.find(var_name);
             if (mod_var_it) {
                 model::Object* var_val = mod_var_it->value;

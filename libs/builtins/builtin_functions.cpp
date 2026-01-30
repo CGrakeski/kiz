@@ -12,7 +12,7 @@ model::Object* print(model::Object* self, const model::List* args) {
     //dep::u8str text;
     std::string text;
     for (const auto* arg : args->val) {
-        text += arg->to_string() + " ";
+        text += arg->debug_string() + " ";
     }
     std::cout << text << std::endl;
     return new model::Nil();
@@ -21,7 +21,7 @@ model::Object* print(model::Object* self, const model::List* args) {
 model::Object* input(model::Object* self, const model::List* args) {
     if (! args->val.empty()) {
         const auto prompt_obj = get_one_arg(args);
-        std::cout << prompt_obj->to_string();
+        std::cout << prompt_obj->debug_string();
     }
     std::string result;
     std::getline(std::cin, result);
@@ -87,14 +87,14 @@ model::Object* breakpoint(model::Object* self, const model::List* args) {
     for (auto& frame: kiz::Vm::call_stack) {
         std::cout << "Frame [" << i << "] " << frame->name << "\n";
         std::cout << "=================================" << "\n";
-        std::cout << "Owner: " << frame->owner->to_string() << "\n";
+        std::cout << "Owner: " << frame->owner->debug_string() << "\n";
         std::cout << "Pc: " << frame->pc << "\n";
 
         std::cout << "Locals: " << "\n";
         size_t j = 1;
         auto locals_vector = frame->locals.to_vector();
         for (const auto& [n, l] : locals_vector) {
-            std::cout << n << " = " << l->to_string();
+            std::cout << n << " = " << l->debug_string();
             if (j<locals_vector.size()) std::cout << ", ";
             ++j;
         }
@@ -133,7 +133,7 @@ model::Object* cmd(model::Object* self, const model::List* args) {
     if (arg_vector.empty()) {
         return new model::Nil();
     }
-    system(args[0].to_string().c_str());
+    system(args[0].debug_string().c_str());
     return new model::Nil();
 }
 
@@ -201,7 +201,7 @@ model::Object* setattr(model::Object* self, const model::List* args) {
     auto for_set = arg_vector[0];
     auto attr_name = arg_vector[1];
     auto value = arg_vector[2];
-    for_set->attrs.insert(attr_name->to_string(), value);
+    for_set->attrs.insert(attr_name->debug_string(), value);
     return new model::Nil();
 }
 
@@ -220,7 +220,7 @@ model::Object* getattr(model::Object* self, const model::List* args) {
             default_value = arg_vector[2];
         }
         try {
-            return kiz::Vm::get_attr(obj, attr_name->to_string());
+            return kiz::Vm::get_attr(obj, attr_name->debug_string());
         } catch (...) {
             return default_value;
         }
@@ -232,13 +232,13 @@ model::Object* getattr(model::Object* self, const model::List* args) {
         default_value = arg_vector[3];
         if (kiz::Vm::is_true(current_only)) {
             if (const auto value =
-                obj->attrs.find(attr_name->to_string())
+                obj->attrs.find(attr_name->debug_string())
             ) return value->value;
             return default_value;
         }
 
         try {
-            return kiz::Vm::get_attr(obj, attr_name->to_string());
+            return kiz::Vm::get_attr(obj, attr_name->debug_string());
         } catch (...) {
             return default_value;
         }
@@ -254,7 +254,7 @@ model::Object* delattr(model::Object* self, const model::List* args) {
     }
     model::Object* obj = arg_vector[0];
     model::Object* attr_name = arg_vector[1];
-    obj->attrs.del(attr_name->to_string());
+    obj->attrs.del(attr_name->debug_string());
     return new model::Nil();
 }
 
@@ -270,7 +270,7 @@ model::Object* hasattr(model::Object* self, const model::List* args) {
         attr_name = arg_vector[1];
 
         try {
-            kiz::Vm::get_attr(obj, attr_name->to_string());
+            kiz::Vm::get_attr(obj, attr_name->debug_string());
             return new model::Bool(true);
         } catch (...) {
             return new model::Bool(false);
@@ -282,12 +282,12 @@ model::Object* hasattr(model::Object* self, const model::List* args) {
         attr_name = arg_vector[2];
         if (kiz::Vm::is_true(current_only)) {
             if (const auto value =
-                obj->attrs.find(attr_name->to_string())
+                obj->attrs.find(attr_name->debug_string())
             ) return new model::Bool(true);
             return new model::Bool(false);
         }
         try {
-            kiz::Vm::get_attr(obj, attr_name->to_string());
+            kiz::Vm::get_attr(obj, attr_name->debug_string());
             return new model::Bool(true);
         } catch (...) {
             return new model::Bool(false);

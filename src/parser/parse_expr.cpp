@@ -231,6 +231,10 @@ std::unique_ptr<Expr> Parser::parse_primary() {
 
             if (curr_token().type == TokenType::Comma) skip_token(",");
             else if (curr_token().type == TokenType::Semicolon) skip_token(";");
+            else if (curr_token().type == TokenType::RBrace) {
+                init_vec.emplace_back(std::move(key), std::move(val));
+                break;
+            }
             else assert(false);
 
             init_vec.emplace_back(std::move(key), std::move(val));

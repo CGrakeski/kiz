@@ -8,7 +8,7 @@ Object* str_call(Object* self, const List* args) {
     std::string val = 
         args->val.empty()
         ? ""
-        : builtin::get_one_arg(args)->to_string();
+        : builtin::get_one_arg(args)->debug_string();
 
     return new String(val);
 }

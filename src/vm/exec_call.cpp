@@ -65,7 +65,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
         // 校验参数数量
         const size_t required_argc = func->argc;
-        const size_t actual_argc = self
+        const size_t actual_argc = self and self->get_type() != model::Object::ObjectType::OT_Module
             ? args_list->val.size() + 1
             : args_list->val.size();
         if (actual_argc != required_argc) {
@@ -90,7 +90,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
         });
 
         // 储存self
-        if (self) {
+        if (self and self->get_type() != model::Object::ObjectType::OT_Module) {
             self->make_ref();
             args_list->val.emplace(args_list->val.begin(), self);
         }

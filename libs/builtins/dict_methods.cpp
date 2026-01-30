@@ -101,7 +101,7 @@ Object* dict_getitem(Object* self, const List* args) {
     }
 
     throw kiz::NativeFuncError("KeyError",
-            "Undefined key " + key_obj->to_string() + " in Dictionary object " + self->to_string()
+            "Undefined key " + key_obj->debug_string() + " in Dictionary object " + self->debug_string()
     );
 }
 

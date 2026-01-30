@@ -76,7 +76,7 @@ void Repl::eval_and_print(const std::string& cmd) {
     auto stack_top = vm_.fetch_one_from_stack_top();
     if (stack_top != nullptr) {
         if (not dynamic_cast<model::Nil*>(stack_top) and should_print) {
-            std::cout << stack_top->to_string() << std::endl;
+            std::cout << stack_top->debug_string() << std::endl;
         }
     }
 }

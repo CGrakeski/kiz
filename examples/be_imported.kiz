@@ -1,21 +1,17 @@
-__name__ = "module"
+__name__ = "test"
 
 print("init module...")
 abc = 0.1+2
-print(abc)
 
 fn bark()
-    print("A dog is barking")
+    print("Module's function")
 end
 
 fn foo()
+    print("calling Module's function!")
     bark()
 end
 
 fn __private__fn()
     print("private function")
 end
-
-print(bark)
-print(foo)
-print(__private__fn)

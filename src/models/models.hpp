@@ -93,7 +93,7 @@ public:
         }
     }
 
-    [[nodiscard]] virtual std::string to_string() const {
+    [[nodiscard]] virtual std::string debug_string() const {
         return "<Object at " + ptr_to_string(this) + ">";
     }
 
@@ -139,7 +139,7 @@ public:
         const std::vector<std::string>& names
     ) : code(code), consts(consts), names(names) {}
 
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return "<CodeObject at " + ptr_to_string(this) + ">";
     }
 
@@ -156,7 +156,6 @@ class Module : public Object {
 public:
     std::string path;
     CodeObject* code = nullptr;
-    dep::HashMap<Object*> attrs;
 
     static constexpr ObjectType TYPE = ObjectType::OT_Module;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
@@ -166,8 +165,12 @@ public:
         code->make_ref();
     }
 
-    [[nodiscard]] std::string to_string() const override {
-        return "<Module: path='" + path + "' at " + ptr_to_string(this) + ">";
+    explicit Module(std::string name) : path(std::move(name)) {
+        attrs.insert("__parent__", based_module);
+    }
+
+    [[nodiscard]] std::string debug_string() const override {
+        return "<Module: path='" + path + "', attr=" + attrs.to_string() + ", at " + ptr_to_string(this) + ">";
     }
 };
 
@@ -186,7 +189,7 @@ public:
         attrs.insert("__parent__", based_function);
     }
 
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return "<Function: path='" + name + "', argc=" + std::to_string(argc) + " at " + ptr_to_string(this) + ">";
     }
 };
@@ -202,7 +205,7 @@ public:
     explicit NativeFunction(std::function<Object*(Object*, List*)> func) : func(std::move(func)) {
         attrs.insert("__parent__", based_native_function);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
     return "<NativeFunction" +
            (name.empty() 
             ? "" 
@@ -225,7 +228,7 @@ public:
     explicit Int() : val(dep::BigInt(0)) {
         attrs.insert("__parent__", based_int);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return val.to_string();
     }
 };
@@ -241,11 +244,11 @@ public:
         attrs.insert("__parent__", based_list);
         attrs.insert("__current_index__", new Int(dep::BigInt(0)));
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         std::string result = "[";
         for (size_t i = 0; i < val.size(); ++i) {
             if (val[i] != nullptr) {
-                result += val[i]->to_string();  // 递归调用元素的 to_string
+                result += val[i]->debug_string();  // 递归调用元素的 to_string
             } else {
                 result += "Nil";
             }
@@ -266,7 +269,7 @@ public:
     explicit Decimal(dep::Decimal val) : val(std::move(val)) {
         attrs.insert("__parent__", based_decimal);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return val.to_string();
     }
 };
@@ -282,7 +285,7 @@ public:
     explicit Rational(const dep::Rational& val) : val(val) {
         attrs.insert("__parent__", based_rational);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return val.numerator.to_string() + "/" + val.denominator.to_string();
     }
 };
@@ -297,7 +300,7 @@ public:
     explicit String(std::string val) : val(std::move(val)) {
         attrs.insert("__parent__", based_str);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return val;
     }
 };
@@ -315,12 +318,12 @@ public:
         attrs.insert("__parent__", based_dict);
     }
 
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         std::string result = "{";
         auto kv_list = val.to_vector();
         size_t i = 0;
         for (auto& [_, kv_pair] : kv_list) {
-            result += kv_pair.first->to_string() + ": " + kv_pair.second->to_string();
+            result += kv_pair.first->debug_string() + ": " + kv_pair.second->debug_string();
             if (i != kv_list.size() - 1) {
                 result += ", ";
             }
@@ -341,7 +344,7 @@ public:
     explicit Bool(const bool val) : val(val) {
         attrs.insert("__parent__", based_bool);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return val ? "True" : "False";
     }
 };
@@ -355,7 +358,7 @@ public:
     explicit Nil() : Object() {
         attrs.insert("__parent__", based_nil);
     }
-    [[nodiscard]] std::string to_string() const override {
+    [[nodiscard]] std::string debug_string() const override {
         return "Nil";
     }
 };
