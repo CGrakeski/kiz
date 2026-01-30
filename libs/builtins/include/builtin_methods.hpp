@@ -18,6 +18,7 @@ Object* int_lt(Object* self, const List* args);
 Object* int_gt(Object* self, const List* args);
 Object* int_bool(Object* self, const List* args);
 Object* int_call(Object* self, const List* args);
+Object* int_hash(Object* self, const List* args);
 
 // Decimal类型原生函数
 Object* decimal_add(Object* self, const List* args);
@@ -31,6 +32,7 @@ Object* decimal_lt(Object* self, const List* args);
 Object* decimal_gt(Object* self, const List* args);
 Object* decimal_bool(Object* self, const List* args);
 Object* decimal_call(Object* self, const List* args);
+Object* decimal_hash(Object* self, const List* args);
 Object* decimal_safe_div(Object* self, const List* args);
 
 // Rational 类型原生函数
@@ -46,10 +48,13 @@ Object* rational_gt(Object* self, const List* args);
 
 // Nil 类型原生函数
 Object* nil_eq(Object* self, const List* args);
+Object* nil_hash(Object* self, const List* args);
+
 
 // Bool 类型原生函数
 Object* bool_eq(Object* self, const List* args);
 Object* bool_call(Object* self, const List* args);
+Object* bool_hash(Object* self, const List* args);
 
 // String 类型原生函数
 Object* str_eq(Object* self, const List* args);
@@ -58,11 +63,15 @@ Object* str_mul(Object* self, const List* args);
 Object* str_contains(Object* self, const List* args);
 Object* str_call(Object* self, const List* args);
 Object* str_bool(Object* self, const List* args);
+Object* str_hash(Object* self, const List* args);
 
 // Dict 类型原生函数
 Object* dict_eq(Object* self, const List* args);
 Object* dict_add(Object* self, const List* args);
-Object* dict_contains(Object* self, const List* args);;
+Object* dict_contains(Object* self, const List* args);
+Object* dict_setitem(Object* self, const List* args);
+Object* dict_getitem(Object* self, const List* args);
+
 
 // List 类型原生函数
 Object* list_eq(Object* self, const List* args);
@@ -71,6 +80,8 @@ Object* list_mul(Object* self, const List* args);
 Object* list_call(Object* self, const List* args);
 Object* list_bool(Object* self, const List* args);
 Object* list_next(Object* self, const List* args);
+Object* list_setitem(Object* self, const List* args);
+Object* list_getitem(Object* self, const List* args);
 // 普通方法
 Object* list_contains(Object* self, const List* args);
 Object* list_append(Object* self, const List* args);

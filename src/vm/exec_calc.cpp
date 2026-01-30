@@ -28,7 +28,7 @@ void Vm::exec_ADD(const Instruction& instruction) {
     auto [a, b] = fetch_two_from_stack_top("add");
     DEBUG_OUTPUT("a is " + a->to_string() + ", b is " + b->to_string());
 
-    call(get_attr(a, "__add__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__add__"), new model::List({b}), a);
     DEBUG_OUTPUT("success to call function");
 }
 
@@ -36,28 +36,28 @@ void Vm::exec_SUB(const Instruction& instruction) {
     DEBUG_OUTPUT("exec sub...");
     auto [a, b] = fetch_two_from_stack_top("sub");
 
-    call(get_attr(a, "__sub__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__sub__"), new model::List({b}), a);
 }
 
 void Vm::exec_MUL(const Instruction& instruction) {
     DEBUG_OUTPUT("exec mul...");
     auto [a, b] = fetch_two_from_stack_top("mul");
 
-    call(get_attr(a, "__mul__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__mul__"), new model::List({b}), a);
 }
 
 void Vm::exec_DIV(const Instruction& instruction) {
     DEBUG_OUTPUT("exec div...");
     auto [a, b] = fetch_two_from_stack_top("div");
 
-    call(get_attr(a, "__div__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__div__"), new model::List({b}), a);
 }
 
 void Vm::exec_MOD(const Instruction& instruction) {
     DEBUG_OUTPUT("exec mod...");
     auto [a, b] = fetch_two_from_stack_top("mod");
 
-    call(get_attr(a, "__mod__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__mod__"), new model::List({b}), a);
 
 }
 
@@ -65,7 +65,7 @@ void Vm::exec_POW(const Instruction& instruction) {
     DEBUG_OUTPUT("exec pow...");
     auto [a, b] = fetch_two_from_stack_top("pow");
 
-    call(get_attr(a, "__pow__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__pow__"), new model::List({b}), a);
 }
 
 void Vm::exec_NEG(const Instruction& instruction) {
@@ -74,7 +74,7 @@ void Vm::exec_NEG(const Instruction& instruction) {
     DEBUG_OUTPUT("exec neg...");
     auto a = op_stack.top();
     op_stack.pop();
-    call(get_attr(a, "__neg__"), new model::List({}), a);
+    handle_call(get_attr(a, "__neg__"), new model::List({}), a);
 }
 
 // -------------------------- 比较指令 --------------------------
@@ -82,21 +82,21 @@ void Vm::exec_EQ(const Instruction& instruction) {
     DEBUG_OUTPUT("exec eq...");
     auto [a, b] = fetch_two_from_stack_top("eq");
 
-    call(get_attr(a, "__eq__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__eq__"), new model::List({b}), a);
 }
 
 void Vm::exec_GT(const Instruction& instruction) {
     DEBUG_OUTPUT("exec gt...");
     auto [a, b] = fetch_two_from_stack_top("gt");
 
-    call(get_attr(a, "__gt__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__gt__"), new model::List({b}), a);
 }
 
 void Vm::exec_LT(const Instruction& instruction) {
     DEBUG_OUTPUT("exec lt...");
     auto [a, b] = fetch_two_from_stack_top("lt");
 
-    call(get_attr(a, "__lt__"), new model::List({b}), a);
+    handle_call(get_attr(a, "__lt__"), new model::List({b}), a);
 }
 
 // -------------------------- 逻辑指令 --------------------------
@@ -158,8 +158,8 @@ void Vm::exec_IS(const Instruction& instruction) {
 
 void Vm::exec_GE(const Instruction& instruction) {
     auto [a, b] = fetch_two_from_stack_top("ge");
-    call(get_attr(a, "__eq__"), new model::List({b}), a);
-    call(get_attr(a, "__gt__"), new model::List({b}), a);
+    call_function(get_attr(a, "__eq__"), new model::List({b}), a);
+    call_function(get_attr(a, "__gt__"), new model::List({b}), a);
     auto [gt_result, eq_result] = fetch_two_from_stack_top("ge");
 
     auto result = new model::Bool(false);
@@ -173,8 +173,8 @@ void Vm::exec_GE(const Instruction& instruction) {
 
 void Vm::exec_LE(const Instruction& instruction) {
     auto [a, b] = fetch_two_from_stack_top("le");
-    call(get_attr(a, "__eq__"), new model::List({b}), a);
-    call(get_attr(a, "__lt__"), new model::List({b}), a);
+    call_function(get_attr(a, "__eq__"), new model::List({b}), a);
+    call_function(get_attr(a, "__lt__"), new model::List({b}), a);
     auto [lt_result, eq_result] = fetch_two_from_stack_top("le");
 
     auto result = new model::Bool(false);
@@ -188,7 +188,7 @@ void Vm::exec_LE(const Instruction& instruction) {
 
 void Vm::exec_NE(const Instruction& instruction) {
     auto [a, b] = fetch_two_from_stack_top("le");
-    call(get_attr(a, "__eq__"), new model::List({b}), a);
+    call_function(get_attr(a, "__eq__"), new model::List({b}), a);
     if (is_true(op_stack.top())) {
         op_stack.pop();
         op_stack.emplace(new model::Bool(false));

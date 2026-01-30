@@ -1,0 +1,2 @@
+import io
+print(io.fast_read("../examples/for_test_io.txt"))

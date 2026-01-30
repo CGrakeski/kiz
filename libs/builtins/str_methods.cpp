@@ -8,7 +8,7 @@ Object* str_call(Object* self, const List* args) {
     std::string val = 
         args->val.empty()
         ? ""
-        : builtin::get_one_arg(args)->to_string();
+        : builtin::get_one_arg(args)->debug_string();
 
     return new String(val);
 }
@@ -84,5 +84,13 @@ Object* str_contains(Object* self, const List* args) {
     bool exists = self_str->val.find(sub_str->val) != std::string::npos;
     return new Bool(exists);
 };
+
+// String.__hash__
+Object* str_hash(Object* self, const List* args) {
+    auto self_str = dynamic_cast<String*>(self);
+    assert(self_str != nullptr && "str_hash must be called by String object");
+    auto hashed_str = dep::hash_string(self_str->val);
+    return new Int(dep::BigInt(hashed_str));
+}
 
 }  // namespace model

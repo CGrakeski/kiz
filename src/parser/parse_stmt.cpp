@@ -38,6 +38,31 @@ std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith) {
     return std::make_unique<BlockStmt>(block_tok.pos, std::move(block_stmts));
 }
 
+std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith1, TokenType endswith2, TokenType endswith3) {
+    DEBUG_OUTPUT("parsing block (with end)");
+    std::vector<std::unique_ptr<Stmt>> block_stmts;
+    auto block_tok = curr_token();
+
+    while (curr_tok_idx_ < tokens_.size()) {
+        const Token& curr_tok = curr_token();
+
+        if (curr_tok.type == endswith1
+         or curr_tok.type == endswith2
+         or curr_tok.type == endswith3
+        ) break;
+
+        if (curr_tok.type == TokenType::EndOfFile) {
+            assert(false && "Block not terminated with 'end'");
+        }
+
+        if (auto stmt = parse_stmt()) {
+            block_stmts.push_back(std::move(stmt));
+        }
+    }
+
+    return std::make_unique<BlockStmt>(block_tok.pos, std::move(block_stmts));
+}
+
 // parse_if实现
 std::unique_ptr<IfStmt> Parser::parse_if() {
     DEBUG_OUTPUT("parsing if");
@@ -208,9 +233,14 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         auto tok = skip_token("object");
         skip_start_of_block();
         const std::string name = skip_token().text;
+        std::string parent_name;
+        if (curr_token().type == TokenType::Colon) {
+            skip_token(":");
+            parent_name = skip_token().text;
+        }
         auto object_block = parse_block();
         skip_token("end");
-        return std::make_unique<ObjectStmt>(tok.pos, name, std::move(object_block));
+        return std::make_unique<ObjectStmt>(tok.pos, name, parent_name, std::move(object_block));
     }
     
     // 解析throw语句
@@ -288,14 +318,23 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
     // 解析表达式语句
     auto expr = parse_expression();
     if (expr != nullptr and curr_token().text == "=") {
-        if (dynamic_cast<GetMemberExpr*>(expr.get())) {
-            DEBUG_OUTPUT("parsing get member");
+        if (expr->ast_type == AstType::GetMemberExpr) {
+            DEBUG_OUTPUT("parsing set member");
             skip_token("=");
             auto value = parse_expression();
             skip_end_of_ln();
 
             auto set_mem = std::make_unique<SetMemberStmt>(curr_token().pos, std::move(expr), std::move(value));
             return set_mem;
+        }
+        if (expr->ast_type == AstType::GetItemExpr) {
+            DEBUG_OUTPUT("parsing set item");
+            skip_token("=");
+            auto value = parse_expression();
+            skip_end_of_ln();
+
+            auto set_item = std::make_unique<SetItemStmt>(curr_token().pos, std::move(expr), std::move(value));
+            return set_item;
         }
         // 非成员访问表达式后不能跟 =
         err::error_reporter(this -> file_path, curr_token().pos, "SyntaxError",

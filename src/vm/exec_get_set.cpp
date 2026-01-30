@@ -10,18 +10,18 @@ model::Object* Vm::get_attr(const model::Object* obj, const std::string& attr_na
     DEBUG_OUTPUT("finding attr it");
     const auto attr_it = obj->attrs.find(attr_name);
     auto parent_it = obj->attrs.find("__parent__");
-    if (attr_it != nullptr) {
+    if (attr_it) {
         DEBUG_OUTPUT("found attr it");
         return attr_it->value;
     }
 
-    if (parent_it != nullptr) {
+    if (parent_it) {
         DEBUG_OUTPUT("try to find it from parent");
         return get_attr(parent_it->value, attr_name);
     }
     
     throw NativeFuncError("NameError",
-        "Undefined attribute '" + attr_name + "'" + " of " + obj->to_string()
+        "Undefined attribute '" + attr_name + "'" + " of " + obj->debug_string()
     );
 }
 
@@ -59,9 +59,10 @@ void Vm::exec_LOAD_VAR(const Instruction& instruction) {
         if (auto owner_module_it = call_stack.back()->owner->attrs.find("__owner_module__")) {
             auto owner_module = dynamic_cast<model::Module*>(owner_module_it->value);
             assert(owner_module != nullptr);
-            auto var_it = owner_module->attrs.find(var_name);
-            if (var_it) {
-                model::Object* var_val = var_it->value;
+
+            auto mod_var_it = owner_module->attrs.find(var_name);
+            if (mod_var_it) {
+                model::Object* var_val = mod_var_it->value;
                 var_val->make_ref();
                 op_stack.push(var_val);
                 return;
@@ -113,9 +114,7 @@ void Vm::exec_SET_GLOBAL(const Instruction& instruction) {
     var_val->make_ref();
 
     auto var_it = global_frame->locals.find(var_name);
-    if (var_it != nullptr) {
-        var_it->value->del_ref();
-    }
+
     global_frame->locals.insert(var_name, var_val);
 }
 
@@ -138,9 +137,7 @@ void Vm::exec_SET_LOCAL(const Instruction& instruction) {
     DEBUG_OUTPUT("var val: " + var_val->to_string());
 
     auto var_it = curr_frame->locals.find(var_name);
-    if (var_it != nullptr) {
-        var_it->value->del_ref();
-    }
+
     curr_frame->locals.insert(var_name, var_val);
     DEBUG_OUTPUT("ok to set_local...");
     DEBUG_OUTPUT("current local at [" + std::to_string(call_stack.size()) + "] " +  curr_frame->locals.to_string());
@@ -219,11 +216,29 @@ void Vm::exec_SET_ATTR(const Instruction& instruction) {
     std::string attr_name = curr_frame->code_object->names[name_idx];
 
     auto attr_it = obj->attrs.find(attr_name);
-    if (attr_it != nullptr) {
-        attr_it->value->del_ref();
-    }
+
     attr_val->make_ref();
     obj->attrs.insert(attr_name, attr_val);
+}
+
+void Vm::exec_GET_ITEM(const Instruction& instruction) {
+    model::Object* obj = fetch_one_from_stack_top();
+
+    auto args_list = dynamic_cast<model::List*>(fetch_one_from_stack_top());
+    assert(args_list != nullptr);
+
+    handle_call(get_attr(obj, "__getitem__"), args_list, obj);
+}
+
+void Vm::exec_SET_ITEM(const Instruction& instruction) {
+    model::Object* value = fetch_one_from_stack_top();
+    model::Object* arg = fetch_one_from_stack_top();
+    model::Object* obj = fetch_one_from_stack_top();
+
+    // 获取对象自身的 __setitem__
+    model::Object* setitem_method = get_attr(obj, "__setitem__");
+
+    handle_call(setitem_method, new model::List({arg, value}), obj);
 }
 
 }

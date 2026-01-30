@@ -22,7 +22,7 @@ enum class AstType {
     BinaryExpr, UnaryExpr,
     CallExpr,
     GetMemberExpr, GetItemExpr,
-    FuncDeclExpr, DictDeclExpr,
+    FuncDeclExpr, DictExpr,
 
     // 语句类型（对应 Stmt 子类）
     AssignStmt, NonlocalAssignStmt, GlobalAssignStmt,
@@ -100,6 +100,17 @@ struct ListExpr final :  Expr {
         : elements(std::move(elems)) {
         this->pos = pos;
         this->ast_type = AstType::ListExpr;
+    }
+};
+
+// 字典字面量
+struct DictExpr final :  Expr {
+    std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> elements;
+    explicit DictExpr(const err::PositionInfo& pos,
+         decltype(elements) elems
+    ) : elements(std::move(elems)) {
+        this->pos = pos;
+        this->ast_type = AstType::DictExpr;
     }
 };
 
@@ -265,6 +276,17 @@ struct SetMemberStmt final :  Stmt {
     }
 };
 
+// 设置项
+struct SetItemStmt final :  Stmt {
+    std::unique_ptr<Expr> g_item;
+    std::unique_ptr<Expr> val;
+    SetItemStmt(const err::PositionInfo& pos, std::unique_ptr<Expr> g_mem, std::unique_ptr<Expr> val)
+        : g_item(std::move(g_mem)), val(std::move(val)) {
+        this->pos = pos;
+        this->ast_type = AstType::SetItemStmt;
+    }
+};
+
 // 函数调用
 struct CallExpr final :  Expr {
     std::unique_ptr<Expr> callee;
@@ -310,17 +332,6 @@ struct FnDeclExpr final :  Expr {
     }
 };
 
-// 声明字典
-struct DictDeclExpr final :  Expr {
-    std::string name;
-    std::vector<std::pair<std::string, std::unique_ptr<Expr>>> init_list;
-    DictDeclExpr(const err::PositionInfo& pos, std::string n, std::vector<std::pair<std::string, std::unique_ptr<Expr>>> i)
-        : name(std::move(n)), init_list(std::move(i)) {
-        this->pos = pos;
-        this->ast_type = AstType::DictDeclExpr;
-    }
-};
-
 // return 语句
 struct ReturnStmt final :  Stmt {
     std::unique_ptr<Expr> expr;
@@ -344,9 +355,13 @@ struct ImportStmt final :  Stmt {
 // object语句
 struct ObjectStmt final :  Stmt {
     std::string name;
+    std::string parent_name;
     std::unique_ptr<BlockStmt> body;
-    explicit ObjectStmt(const err::PositionInfo& pos, std::string n, std::unique_ptr<BlockStmt> b)
-        : name(std::move(n)), body(std::move(b)) {
+    explicit ObjectStmt(
+        const err::PositionInfo& pos,
+        std::string n, std::string p,
+        std::unique_ptr<BlockStmt> b
+    ) : name(std::move(n)), parent_name(std::move(p)), body(std::move(b)) {
         this->pos = pos;
         this->ast_type = AstType::ObjectStmt;
     }

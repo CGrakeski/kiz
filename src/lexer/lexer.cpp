@@ -32,6 +32,7 @@ void register_keywords() {
 
     keywords["try"] = TokenType::Try;
     keywords["catch"] = TokenType::Catch;
+    keywords["finally"] = TokenType::Finally;
     keywords["throw"] = TokenType::Throw;
     keywords["import"] = TokenType::Import;
     keywords["nonlocal"] = TokenType::Nonlocal;
@@ -48,6 +49,7 @@ void register_keywords() {
     keywords["and"] = TokenType::And;
     keywords["or"] = TokenType::Or;
     keywords["not"] = TokenType::Not;
+    keywords["is"] = TokenType::Is;
 
     keywords_registered = true;
 }
@@ -291,12 +293,6 @@ std::vector<Token> Lexer::tokenize(const std::string& src, size_t lineno_start) 
             ++pos;
             ++col;
         } else if (src[pos] == '}') {
-            if (
-                tokens.back().type != TokenType::Semicolon
-                and tokens.back().type != TokenType::Comma
-            ) {
-                tokens.emplace_back(TokenType::Semicolon, ";", lineno, start_col);
-            }
             tokens.emplace_back(TokenType::RBrace, "}", lineno, start_col);
             ++pos;
             ++col;

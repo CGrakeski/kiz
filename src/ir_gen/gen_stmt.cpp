@@ -26,6 +26,17 @@ void IRGenerator::gen_block(const BlockStmt* block) {
     if (!block) return;
     for (auto& stmt : block->statements) {
         switch (stmt->ast_type) {
+            case AstType::ImportStmt: {
+                const auto* import_stmt = dynamic_cast<ImportStmt*>(stmt.get());
+                const size_t name_idx = get_or_add_name(curr_names, import_stmt->path);
+
+                curr_code_list.emplace_back(
+                    Opcode::IMPORT,
+                    std::vector{name_idx},
+                    stmt->pos
+                );
+                break;
+            }
             case AstType::AssignStmt: {
                 // 变量声明：生成初始化表达式IR + 存储变量指令
                 const auto* var_decl = dynamic_cast<AssignStmt*>(stmt.get());
@@ -34,7 +45,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
 
                 curr_code_list.emplace_back(
                     Opcode::SET_LOCAL,
-                    std::vector<size_t>{name_idx},
+                    std::vector{name_idx},
                     stmt->pos
                 );
                 break;
@@ -78,9 +89,32 @@ void IRGenerator::gen_block(const BlockStmt* block) {
 
                 curr_code_list.emplace_back(
                     Opcode::SET_LOCAL,
-                    std::vector<size_t>{name_idx},
+                    std::vector{name_idx},
                     stmt->pos
                 );
+
+                if (!obj_decl->parent_name.empty()) {
+                    const size_t parent_name_idx = get_or_add_name(curr_names, obj_decl->parent_name);
+
+                    curr_code_list.emplace_back(
+                        Opcode::LOAD_VAR,
+                        std::vector{name_idx},
+                        stmt->pos
+                    );
+
+                    curr_code_list.emplace_back(
+                        Opcode::LOAD_VAR,
+                        std::vector{parent_name_idx},
+                        stmt->pos
+                    );
+
+                    const size_t parent_text_idx = get_or_add_name(curr_names, "__parent__");
+                    curr_code_list.emplace_back(
+                        Opcode::SET_ATTR,
+                        std::vector{parent_text_idx},
+                        stmt->pos
+                    );
+                }
 
                 for (const auto& sub_assign: obj_decl->body->statements) {
                     const auto sub_assign_stmt = dynamic_cast<AssignStmt*>(sub_assign.get());
@@ -192,6 +226,21 @@ void IRGenerator::gen_block(const BlockStmt* block) {
                 curr_code_list.emplace_back(
                     Opcode::SET_ATTR,
                     std::vector<size_t>{name_idx},
+                    stmt->pos
+                );
+                break;
+            }
+            case AstType::SetItemStmt: {
+                const auto* set_item = dynamic_cast<SetItemStmt*>(stmt.get());
+                const auto* get_item = dynamic_cast<GetItemExpr*>(set_item->g_item.get());
+
+                gen_expr(get_item->father.get()); // 生成对象IR
+                gen_expr(get_item->params[0].get()); // 生成第一参数(仅支持一个参数)
+                gen_expr(set_item->val.get());   // 生成值IR
+
+                curr_code_list.emplace_back(
+                    Opcode::SET_ITEM,
+                    std::vector<size_t>{},
                     stmt->pos
                 );
                 break;

@@ -81,10 +81,10 @@ Object* list_eq(Object* self, const List* args) {
         assert(elem_eq_method != nullptr && "Element must implement __eq__ method");
         
         // 调用 __eq__
-        kiz::Vm::call(
+        kiz::Vm::call_function(
             elem_eq_method, new List({another_elem}), self_elem
         );
-        const auto eq_result = kiz::Vm::get_return_val();
+        const auto eq_result = kiz::Vm::fetch_one_from_stack_top();
 
         // 解析比较结果
         const auto eq_bool = dynamic_cast<Bool*>(eq_result);
@@ -115,10 +115,10 @@ Object* list_contains(Object* self, const List* args) {
     for (Object* elem : self_list->val) {
         const auto elem_eq_method = kiz::Vm::get_attr(elem, "__eq__");
 
-        kiz::Vm::call(
+        kiz::Vm::call_function(
             elem_eq_method, new List({target_elem}), elem
         );
-        const auto result = kiz::Vm::get_return_val();
+        const auto result = kiz::Vm::fetch_one_from_stack_top();
 
         // 找到匹配元素，立即返回true
         if (kiz::Vm::is_true(result)) return new Bool(true);
@@ -176,8 +176,7 @@ Object* list_foreach(Object* self, const List* args) {
 
     dep::BigInt idx = 0;
     for (auto e : self_list->val) {
-        kiz::Vm::call(func_obj, new List({e}), nullptr);
-        kiz::Vm::exec_code_until_start_frame();
+        kiz::Vm::call_function(func_obj, new List({e}), nullptr);
         idx += 1;
     }
     return new Nil();
@@ -224,6 +223,27 @@ Object* list_insert(Object* self, const List* args) {
         }
     }
     return new Nil();
+}
+
+Object* list_setitem(Object* self, const List* args) {
+    assert(args->val.size() == 2);
+    auto self_list = dynamic_cast<List*>(self);
+    auto idx_obj = dynamic_cast<Int*>(args->val[0]);
+    assert(idx_obj != nullptr);
+    auto index = idx_obj->val.to_unsigned_long_long();
+
+    auto value_obj = args->val[1];
+    self_list->val[index] = value_obj;
+    return new Nil();
+}
+
+Object* list_getitem(Object* self, const List* args) {
+    auto self_list = dynamic_cast<List*>(self);
+    auto idx_obj = dynamic_cast<Int*>(builtin::get_one_arg(args));
+    assert(idx_obj != nullptr);
+
+    auto index = idx_obj->val.to_unsigned_long_long();
+    return self_list->val[index];
 }
 
 Object* list_count(Object* self, const List* args) {

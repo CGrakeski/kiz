@@ -230,13 +230,19 @@ Object* decimal_neg(Object* self, const List* args) {
     return new Decimal(neg_val);
 }
 
+// Decimal.__hash__
+Object* decimal_hash(Object* self, const List* args) {
+    const auto self_dec = dynamic_cast<Decimal*>(self);
+    return new Int(self_dec->val.hash());
+}
+
+
 // Decimal.safe_div：除法（self / args[0]），支持Int/Decimal（保留指定位小数）
 Object* decimal_safe_div(Object* self, const List* args) {
     DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_safe_div)");
     assert(args->val.size() == 2 && "function Decimal.safe_div need 2 args: divisor, decimal_places");
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_safe_div must be called by Decimal object");
 
     // 解析保留小数位数（转为int，避免BigInt越界）
     const auto n_obj = dynamic_cast<Int*>(args->val[1]);

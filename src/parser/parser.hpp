@@ -16,7 +16,7 @@ namespace kiz {
 
 class Parser {
     std::vector<Token> tokens_;
-    long long unsigned int curr_tok_idx_ = 0;
+    size_t curr_tok_idx_ = 0;
     const std::string& file_path;
 public:
     explicit Parser(const std::string& file_path) : file_path(file_path) {}
@@ -33,6 +33,7 @@ private:
     // parse stmt
     std::unique_ptr<Stmt> parse_stmt();
     std::unique_ptr<BlockStmt> parse_block(TokenType endswith = TokenType::End);
+    std::unique_ptr<BlockStmt> parse_block(TokenType endswith1, TokenType endswith2, TokenType endswith3);
     std::unique_ptr<IfStmt> parse_if();
 
     // parse expr

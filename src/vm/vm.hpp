@@ -88,30 +88,30 @@ public:
 
     static void set_main_module(model::Module* src_module);
     static void exec_curr_code();
-    static void exec_code_until_start_frame();
     static void set_and_exec_curr_code(const model::CodeObject* code_object);
-    static void load_required_modules(const dep::HashMap<model::Module*>& modules);
 
     static void execute_instruction(const Instruction& instruction);
 
-    static model::Object* get_return_val();
     static CallFrame* fetch_curr_call_frame();
-
     static model::Object* fetch_one_from_stack_top();
     static auto fetch_two_from_stack_top(const std::string& op_name)
         -> std::tuple<model::Object*, model::Object*>;
 
     static model::Object* get_attr(const model::Object* obj, const std::string& attr);
     static bool is_true(model::Object* obj);
-    static void call(model::Object* func_obj, model::Object* args_obj, model::Object* self);
 
     static void instruction_throw(const std::string& name, const std::string& content);
     static auto gen_pos_info()
         -> std::vector<std::pair<std::string, err::PositionInfo>>;
-    static void throw_error();
+    static void handle_throw();
 
+    /// 如果新增了调用栈，执行循环仅处理新增的模块栈帧（call_stack.size() > old_stack_size），不影响原有调用栈
+    static void call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self);
 
 private:
+    /// 如果用户函数则创建调用栈，如果内置函数则执行并压上返回值
+    static void handle_call(model::Object* func_obj, model::Object* args_obj, model::Object* self);
+
     static void exec_ADD(const Instruction& instruction);
     static void exec_SUB(const Instruction& instruction);
     static void exec_MUL(const Instruction& instruction);
@@ -131,10 +131,13 @@ private:
     static void exec_IS(const Instruction& instruction);
 
     static void exec_MAKE_LIST(const Instruction& instruction);
+    static void exec_MAKE_DICT(const Instruction& instruction);
     static void exec_CALL(const Instruction& instruction);
     static void exec_RET(const Instruction& instruction);
     static void exec_GET_ATTR(const Instruction& instruction);
     static void exec_SET_ATTR(const Instruction& instruction);
+    static void exec_GET_ITEM(const Instruction& instruction);
+    static void exec_SET_ITEM(const Instruction& instruction);
     static void exec_CALL_METHOD(const Instruction& instruction);
     static void exec_LOAD_VAR(const Instruction& instruction);
     static void exec_LOAD_CONST(const Instruction& instruction);

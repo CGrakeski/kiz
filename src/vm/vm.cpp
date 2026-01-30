@@ -36,6 +36,7 @@ Vm::Vm(const std::string& file_path_) {
     file_path = file_path_;
     DEBUG_OUTPUT("entry builtin functions...");
     entry_builtins();
+    entry_std_modules();
 }
 
 void Vm::set_main_module(model::Module* src_module) {
@@ -47,7 +48,7 @@ void Vm::set_main_module(model::Module* src_module) {
     main_module = src_module;
     // 创建模块级调用帧（CallFrame）：模块是顶层执行单元，对应一个顶层调用帧
     auto module_call_frame = std::make_shared<CallFrame>(CallFrame{
-        src_module->name,                // 调用帧名称与模块名一致（便于调试）
+        src_module->path,                // 调用帧名称与模块名一致（便于调试）
 
         src_module,
         dep::HashMap<model::Object*>(), // 初始空局部变量表
@@ -104,44 +105,6 @@ void Vm::exec_curr_code() {
     DEBUG_OUTPUT("call stack length: " + std::to_string(call_stack.size()));
 }
 
-void Vm::exec_code_until_start_frame() {
-    size_t old_call_stack_size = call_stack.size();
-    while (!call_stack.empty() && running) {
-        auto& curr_frame = *call_stack.back();
-        // 检查当前帧是否执行完毕
-        if (curr_frame.pc >= curr_frame.code_object->code.size()) {
-            // 非模块帧则弹出，模块帧则退出循环
-            if (call_stack.size() > 1) {
-                call_stack.pop_back();
-            } else {
-                break;
-            }
-            continue;
-        }
-
-        // 执行当前指令
-        const Instruction& curr_inst = curr_frame.code_object->code[curr_frame.pc];
-        try {
-            if (curr_inst.opc == Opcode::RET and old_call_stack_size == call_stack.size()) {
-                call_stack.pop_back();
-                return;
-            }
-            execute_instruction(curr_inst);
-        } catch (NativeFuncError& e) {
-            instruction_throw(e.name, e.msg);
-        }
-        // 修正PC自增条件：仅非跳转/非RET指令自增
-        if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE && curr_inst.opc != Opcode::RET) {
-            curr_frame.pc++;
-        }
-    }
-}
-
-model::Object* Vm::get_return_val() {
-    assert(!op_stack.empty());
-    return op_stack.top();
-}
-
 CallFrame* Vm::fetch_curr_call_frame() {
     if ( !call_stack.empty() ) {
         return call_stack.back().get();
@@ -151,6 +114,7 @@ CallFrame* Vm::fetch_curr_call_frame() {
 
 model::Object* Vm::fetch_one_from_stack_top() {
     const auto stack_top = op_stack.empty() ? nullptr : op_stack.top();
+    if (stack_top) op_stack.pop();
     return stack_top;
 }
 
@@ -181,19 +145,14 @@ void Vm::set_and_exec_curr_code(const model::CodeObject* code_object) {
     DEBUG_OUTPUT("set_and_exec_curr_code: 执行新指令完成");
 }
 
-void Vm::load_required_modules(const dep::HashMap<model::Module*>& modules) {
-    loaded_modules = modules;
-}
 
-using StackTrace = std::vector<std::pair<std::string, err::PositionInfo>>;
-StackTrace Vm::gen_pos_info() {
-    size_t frame_index = 0;
-    StackTrace positions;
+auto Vm::gen_pos_info() -> std::vector<std::pair<std::string, err::PositionInfo>> {
+    size_t i = 0;
+    std::vector<std::pair<std::string, err::PositionInfo>> positions;
     std::string path;
     for (const auto& frame: call_stack) {
-        auto modular_frame_owner = dynamic_cast<model::Module*>(frame->owner);
-        if (const auto m = modular_frame_owner) {
-            path = m->name;
+        if (const auto m = dynamic_cast<model::Module*>(frame->owner)) {
+            path = m->path;
         }
         err::PositionInfo pos {};
         bool cond = frame_index == call_stack.size() - 1;
@@ -224,7 +183,7 @@ void Vm::instruction_throw(const std::string& name, const std::string& content) 
     err_obj->attrs.insert("__msg__", err_msg);
     DEBUG_OUTPUT("err_obj pos size = "+std::to_string(err_obj->positions.size()));
     curr_error = err_obj;
-    throw_error();
+    handle_throw();
 }
 
 
@@ -235,12 +194,12 @@ std::pair<std::string, std::string> get_err_name_and_msg(const model::Object* er
     auto err_msg_it = err_obj->attrs.find("__msg__");
     assert(err_name_it != nullptr);
     assert(err_msg_it != nullptr);
-    auto err_name = err_name_it->value->to_string();
-    auto err_msg = err_msg_it->value->to_string();
+    auto err_name = err_name_it->value->debug_string();
+    auto err_msg = err_msg_it->value->debug_string();
     return {err_name, err_msg};
 }
 
-void Vm::throw_error() {
+void Vm::handle_throw() {
     assert(curr_error != nullptr);
 
     size_t frames_to_pop = 0;
@@ -317,12 +276,15 @@ void Vm::execute_instruction(const Instruction& instruction) {
         case Opcode::OP_OR:           exec_OR(instruction);           break;
         case Opcode::OP_IS:           exec_IS(instruction);           break;
         case Opcode::MAKE_LIST:       exec_MAKE_LIST(instruction);    break;
+        case Opcode::MAKE_DICT:       exec_MAKE_DICT(instruction);    break;
 
         case Opcode::CALL:            exec_CALL(instruction);          break;
         case Opcode::RET:             exec_RET(instruction);           break;
         case Opcode::CALL_METHOD:     exec_CALL_METHOD(instruction);   break;
         case Opcode::GET_ATTR:        exec_GET_ATTR(instruction);      break;
         case Opcode::SET_ATTR:        exec_SET_ATTR(instruction);      break;
+        case Opcode::GET_ITEM:        exec_GET_ITEM(instruction);      break;
+        case Opcode::SET_ITEM:        exec_SET_ITEM(instruction);      break;
         case Opcode::LOAD_VAR:        exec_LOAD_VAR(instruction);      break;
         case Opcode::LOAD_CONST:      exec_LOAD_CONST(instruction);    break;
         case Opcode::SET_GLOBAL:      exec_SET_GLOBAL(instruction);    break;
@@ -336,7 +298,7 @@ void Vm::execute_instruction(const Instruction& instruction) {
         case Opcode::JUMP_IF_FALSE:   exec_JUMP_IF_FALSE(instruction); break;
         case Opcode::THROW:           exec_THROW(instruction);         break;
         case Opcode::IS_INSTANCE:     exec_IS_INSTANCE(instruction);   break;
-        case Opcode::CREATE_OBJECT:  exec_CREATE_OBJECT(instruction);    break;
+        case Opcode::CREATE_OBJECT:   exec_CREATE_OBJECT(instruction);  break;
         case Opcode::STOP:            exec_STOP(instruction);          break;
         default:                      assert(false && "execute_instruction: 未知 opcode");
     }

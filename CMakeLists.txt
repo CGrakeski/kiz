@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(kiz
-        VERSION 0.2.1
+        VERSION 0.4.0
         LANGUAGES CXX)
 
 # ===================== 基础配置 =====================
@@ -12,7 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 版本号定义
 set(KIZ_VERSION_MAJOR 0)
-set(KIZ_VERSION_MINOR 3)
+set(KIZ_VERSION_MINOR 4)
 set(KIZ_VERSION_PATCH 0)
 set(KIZ_VERSION "${KIZ_VERSION_MAJOR}.${KIZ_VERSION_MINOR}.${KIZ_VERSION_PATCH}")
 
@@ -54,19 +54,22 @@ set(SRC_FILES
         ${PROJECT_SOURCE_DIR}/src/util/src_manager.cpp
         ${PROJECT_SOURCE_DIR}/src/repl/repl.cpp
         ${PROJECT_SOURCE_DIR}/src/input_helper/repl_input_helper.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/decimal_obj.cpp
 )
 
 # lib 模块（仅列cpp）
 set(LIB_SRC_FILES
-        ${PROJECT_SOURCE_DIR}/libs/builtins/bool_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/int_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/rational_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/nil_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/str_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/list_obj.cpp
-        ${PROJECT_SOURCE_DIR}/libs/builtins/dict_obj.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/bool_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/int_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/rational_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/decimal_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/nil_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/str_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/list_methods.cpp
+        ${PROJECT_SOURCE_DIR}/libs/builtins/dict_methods.cpp
         ${PROJECT_SOURCE_DIR}/libs/builtins/builtin_functions.cpp
+        ${PROJECT_SOURCE_DIR}/libs/io/io_lib.cpp
+
+
 )
 
 # ===================== 文件存在性检查（仅检查cpp） =====================
@@ -83,7 +86,8 @@ foreach(lib_file ${LIB_SRC_FILES})
 endforeach()
 
 # 合并所有cpp文件
-set(ALL_SRC_FILES ${SRC_FILES} ${LIB_SRC_FILES})
+set(ALL_SRC_FILES ${SRC_FILES} ${LIB_SRC_FILES}
+        src/vm/exec_import.cpp)
 
 # ===================== 编译配置（核心：让编译器找到hpp） =====================
 # 仅添加cpp到可执行目标

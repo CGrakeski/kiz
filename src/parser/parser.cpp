@@ -42,8 +42,8 @@ Token Parser::skip_token(const std::string& want_skip) {
     }
 
     // 严格报错
-    // Original: assert(false);
-    err::error_reporter(this -> file_path, curr_token().pos, "SyntaxError", "Invalid token/grammar");
+    err::error_reporter(this->file_path, curr_token().pos, "SyntaxError", "Invalid token/grammar");
+    DEBUG_OUTPUT("You want to skip "+want_skip);
 }
 
 // curr_token实现
@@ -69,6 +69,8 @@ void Parser::skip_end_of_ln() {
     }
     // 到达文件末尾也视为合法结束
     if (curr_tok.type == TokenType::EndOfFile) {
+        DEBUG_OUTPUT("end of the file");
+        skip_token();
         return;
     }
     DEBUG_OUTPUT("curr_tok: " + curr_tok.text);

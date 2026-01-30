@@ -10,9 +10,9 @@ end
 
 x = 100
 y = 0.1 + 0.2
-print y == 0.3
+print(y == 0.3)
 
-print x
+print(x)
 hello()
 
 user_input = input("Type Y/N")
@@ -25,16 +25,13 @@ else
 end
 
 # 字典
-dict Dog
-    name = "Tom"
-    age = 10
-end
+Dog = {name : "Tom", age : 10}
 
-print Dog.name
-Dog.age = 11
-print Dog.age
+print(Dog["name"])
+Dog["age"] = 11
+print(Dog.age)
 
-print Nil is Nil
+print(Nil is Nil)
 
 # 闭包
 fn a
@@ -49,9 +46,9 @@ fn a
         end
     end
     d()
-    print outer
+    print(outer)
 end
 
 aa = a
 aa()
-print x
+print(x)

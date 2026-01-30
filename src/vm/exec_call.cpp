@@ -3,6 +3,7 @@
 
 #include "../models/models.hpp"
 #include "vm.hpp"
+#include "op_code/opcode.hpp"
 
 namespace kiz {
 
@@ -14,13 +15,13 @@ bool Vm::is_true(model::Object* obj) {
         return false;
     }
 
-    call(get_attr(obj, "__bool__"), new model::List({}), obj);
-    auto result = get_return_val();
+    call_function(get_attr(obj, "__bool__"), new model::List({}), obj);
+    auto result = fetch_one_from_stack_top();
     return is_true(result);
 }
 
 
-void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* self=nullptr){
+void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Object* self=nullptr){
     assert(func_obj != nullptr);
     assert(args_obj != nullptr);
     auto* args_list = dynamic_cast<model::List*>(args_obj);
@@ -64,7 +65,7 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
 
         // 校验参数数量
         const size_t required_argc = func->argc;
-        const size_t actual_argc = self
+        const size_t actual_argc = self and self->get_type() != model::Object::ObjectType::OT_Module
             ? args_list->val.size() + 1
             : args_list->val.size();
         if (actual_argc != required_argc) {
@@ -89,7 +90,7 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
         });
 
         // 储存self
-        if (self) {
+        if (self and self->get_type() != model::Object::ObjectType::OT_Module) {
             self->make_ref();
             args_list->val.emplace(args_list->val.begin(), self);
         }
@@ -117,11 +118,60 @@ void Vm::call(model::Object* func_obj, model::Object* args_obj, model::Object* s
         call_stack.emplace_back(std::move(new_frame));
 
     // 处理对象魔术方法__call__
-    } else if (const auto callable_it = func_obj->attrs.find("__call__")) {
-        DEBUG_OUTPUT("call callable obj");
-        call(callable_it->value, args_obj, func_obj);
     } else {
-        assert(false && "CALL: 栈顶元素非Function/CppFunction类型");
+        try {
+            const auto callable = get_attr(func_obj, "__call__");
+            DEBUG_OUTPUT("call callable obj");
+            handle_call(callable, args_obj, func_obj);
+        } catch (NativeFuncError& e) {
+            throw NativeFuncError("TypeError", "try to call an uncallable object");
+        }
+    }
+}
+
+void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self) {
+    size_t old_call_stack_size = call_stack.size();
+
+    handle_call(func_obj, args_obj, self);
+
+    if (old_call_stack_size == call_stack.size()) return;
+
+    while (running and !call_stack.empty() and call_stack.size() > old_call_stack_size) {
+        auto& curr_frame = *call_stack.back();
+        auto& frame_code = curr_frame.code_object;
+
+        // 检查是否执行到模块代码末尾：执行完毕则出栈
+        if (curr_frame.pc >= frame_code->code.size()) {
+            call_stack.pop_back();
+            continue;
+        }
+
+        // 执行当前指令
+        const Instruction& curr_inst = frame_code->code[curr_frame.pc];
+        try {
+            if (curr_inst.opc == Opcode::RET and old_call_stack_size == call_stack.size() - 1) {
+                assert(!call_stack.empty());
+                call_stack.pop_back();
+                return;
+            }
+            execute_instruction(curr_inst); // 调用VM的指令执行核心方法
+        } catch (const NativeFuncError& e) {
+            // 原生函数执行错误，抛出异常
+            instruction_throw(e.name, e.msg);
+            return;
+        } catch (const KizStopRunningSignal& e) {
+            // 模块执行中触发停止信号，终止执行
+            running = false;
+            return;
+        }
+
+        // 非跳转/非RET指令，程序计数器自增（跳转指令由自身修改PC）
+        if (curr_inst.opc != Opcode::JUMP &&
+            curr_inst.opc != Opcode::JUMP_IF_FALSE &&
+            curr_inst.opc != Opcode::RET) {
+            curr_frame.pc++;
+        }
+
     }
 }
 
@@ -148,7 +198,7 @@ void Vm::exec_CALL(const Instruction& instruction) {
 
     DEBUG_OUTPUT("弹出函数对象: " + func_obj->to_string());
     DEBUG_OUTPUT("弹出参数列表: " + args_obj->to_string());
-    call(func_obj, args_obj);
+    handle_call(func_obj, args_obj);
 
 }
 
@@ -179,7 +229,7 @@ void Vm::exec_CALL_METHOD(const Instruction& instruction) {
     func_obj->make_ref();
 
     DEBUG_OUTPUT("获取函数对象: " + func_obj->to_string());
-    call(func_obj, args_obj, obj);
+    handle_call(func_obj, args_obj, obj);
 
 }
 

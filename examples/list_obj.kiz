@@ -8,7 +8,7 @@ print(a)
 a.reverse()
 print(a)
 
-a.foreach( |e| print("item", e) )
+a.foreach(|e| print("item", e))
 
 m = 0
 print(m)
