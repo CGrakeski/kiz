@@ -39,6 +39,7 @@ void Vm::entry_builtins() {
     model::based_native_function->attrs.insert("__parent__", model::based_obj);
     model::based_error->attrs.insert("__parent__", model::based_obj);
     model::based_str->attrs.insert("__parent__", model::based_obj);
+    model::stop_iter_signal->attrs.insert("__parent__", model::based_obj);
 
     DEBUG_OUTPUT("registering magic methods...");
 
@@ -154,6 +155,7 @@ void Vm::entry_builtins() {
     model::based_str->attrs.insert("__getitem__", new model::NativeFunction(model::str_getitem));
     model::based_str->attrs.insert("__str__", new model::NativeFunction(model::str_str));
     model::based_str->attrs.insert("__dstr__", new model::NativeFunction(model::str_dstr));
+    model::based_str->attrs.insert("__next__", new model::NativeFunction(model::str_next));
 
 
     model::based_str->attrs.insert("contains", new model::NativeFunction(model::str_contains));
@@ -223,5 +225,6 @@ void Vm::entry_builtins() {
     builtins.insert("__Nil", model::based_nil);
     builtins.insert("Error", model::based_error);
     builtins.insert("Module", model::based_module);
+    builtins.insert("__StopIterSignal__", model::stop_iter_signal);
 }
 }

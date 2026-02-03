@@ -84,6 +84,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
             call_stack.back()->pc + 1,   // 执行完所有指令后返回的位置（指令池末尾）
             func->code,                 // 关联当前模块的CodeObject
 
+            {},
             {}
         });
 
@@ -165,7 +166,7 @@ void Vm::call_function(model::Object* func_obj, model::Object* args_obj, model::
 
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
             curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR
-            && curr_inst.opc != Opcode::THROW) {
+            && curr_inst.opc != Opcode::THROW && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER) {
             curr_frame.pc++;
             }
 
@@ -226,13 +227,11 @@ void Vm::exec_CALL_METHOD(const Instruction& instruction) {
     DEBUG_OUTPUT("exec call method...");
 
     // 弹出栈顶元素 : 源对象
-    auto obj = op_stack.top();
-    op_stack.pop();
+    auto obj = fetch_one_from_stack_top();
     obj->make_ref();
 
     // 弹出栈顶-1元素 : 参数列表
-    model::Object* args_obj = op_stack.top();
-    op_stack.pop();
+    model::Object* args_obj = fetch_one_from_stack_top();
 
     DEBUG_OUTPUT("弹出对象: " + obj->debug_string());
     DEBUG_OUTPUT("弹出参数列表: " + args_obj->debug_string());

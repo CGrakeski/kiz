@@ -335,6 +335,16 @@ void IRGenerator::gen_while(WhileStmt* while_stmt) {
 
 void IRGenerator::gen_for(ForStmt* for_stmt) {
     assert(for_stmt);
+
+    // 生成循环iter IR
+    gen_expr(for_stmt->iter.get());
+
+    curr_code_list.emplace_back(
+        Opcode::CACHE_ITER,
+        std::vector<size_t>{},
+        for_stmt->pos
+    );
+
     // 记录循环入口（条件判断开始位置）→ continue跳这里
     size_t loop_entry_idx = curr_code_list.size();
 
@@ -344,8 +354,11 @@ void IRGenerator::gen_for(ForStmt* for_stmt) {
         for_stmt->pos
     );
 
-    // 生成循环条件IR
-    gen_expr(for_stmt->iter.get());
+    curr_code_list.emplace_back(
+        Opcode::GET_ITER,
+        std::vector<size_t>{},
+        for_stmt->pos
+    );
 
     size_t name_idx = get_or_add_name(curr_names, "__next__");
 
@@ -371,7 +384,7 @@ void IRGenerator::gen_for(ForStmt* for_stmt) {
     // 生成JUMP_IF_FALSE指令（目标：循环结束位置，先占位）
     const size_t jump_if_false_idx = curr_code_list.size();
     curr_code_list.emplace_back(
-        Opcode::JUMP_IF_FALSE,
+        Opcode::JUMP_IF_FINISH_ITER,
         std::vector<size_t>{0}, // 占位，后续填充为循环结束位置
         for_stmt->pos
     );
@@ -385,13 +398,19 @@ void IRGenerator::gen_for(ForStmt* for_stmt) {
     // 生成JUMP指令，跳回循环入口
     curr_code_list.emplace_back(
         Opcode::JUMP,
-        std::vector<size_t>{loop_entry_idx},
+        std::vector{loop_entry_idx},
         for_stmt->pos
     );
 
     // 填充JUMP_IF_FALSE的目标（循环结束位置 = 当前代码列表长度）
     size_t loop_exit_idx = curr_code_list.size();
     curr_code_list[jump_if_false_idx].opn_list[0] = loop_exit_idx;
+
+    curr_code_list.emplace_back(
+        Opcode::POP_ITER,
+        std::vector<size_t>{},
+        for_stmt->pos
+    );
 
     for (const auto break_pos : block_stack.top().break_pos) {
         curr_code_list[break_pos].opn_list[0] = loop_exit_idx;

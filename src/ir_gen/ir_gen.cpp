@@ -32,7 +32,6 @@ size_t IRGenerator::get_or_add_const(std::vector<model::Object*>& consts, model:
     if (it != consts.end()) {
         return std::distance(consts.begin(), it);
     }
-    obj->make_ref(); // 管理引用计数
     consts.emplace_back(obj);
     return consts.size() - 1;
 }
@@ -94,7 +93,12 @@ model::CodeObject* IRGenerator::make_code_obj() const {
 model::Int* IRGenerator::make_int_obj(const NumberExpr* num_expr) {
     DEBUG_OUTPUT("making int object...");
     assert(num_expr && "make_int_obj: 数字节点为空");
-    auto int_obj = new model::Int( dep::BigInt(num_expr->value) );
+    auto the_num = dep::BigInt(num_expr->value);
+    if (the_num >= 0 and the_num < 201) {
+        return Vm::small_int_pool[the_num.to_unsigned_long_long()];
+    }
+
+    auto int_obj = new model::Int( the_num );
     return int_obj;
 }
 

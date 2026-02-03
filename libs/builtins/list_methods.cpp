@@ -193,11 +193,11 @@ Object* list_next(Object* self, const List* args) {
     auto self_list = dynamic_cast<List*>(self);
     if (index < self_list->val.size()) {
         auto res = self_list->val[index];
-        self->attrs.insert("__current_index__", new Int(index+1));
+        self->attrs.insert("__current_index__", create_int(index+1));
         return res;
     }
-    self->attrs.insert("__current_index__", new Int(0));
-    return new Bool(false);
+    self->attrs.insert("__current_index__", create_int(0));
+    return stop_iter_signal;
 }
 
 Object* list_foreach(Object* self, const List* args) {

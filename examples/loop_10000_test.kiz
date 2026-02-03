@@ -1,0 +1,9 @@
+start = now()
+
+i=0
+while i < 9999
+    i=i+1
+end
+
+print("loop 10000 time")
+print("using", now()-start, "ns")

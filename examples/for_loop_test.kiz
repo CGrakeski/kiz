@@ -1,8 +1,10 @@
 a = [1,2,3]
 for item in a
-    print(Str(item))
+    print(item)
 end
 
-for item in a
-    print(Str(item))
+print("===")
+
+for i in range(10)
+    print(i)
 end

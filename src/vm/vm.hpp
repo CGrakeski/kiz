@@ -27,6 +27,7 @@ class Module;
 class CodeObject;
 class Object;
 class List;
+class Int;
 }
 
 namespace kiz {
@@ -37,7 +38,7 @@ struct Instruction {
     Opcode opc;
     std::vector<size_t> opn_list;
     err::PositionInfo pos{};
-    Instruction(Opcode o, std::vector<size_t> ol, err::PositionInfo& p) : opc(o), opn_list(std::move(ol)), pos(std::move(p)) {}
+    Instruction(Opcode o, std::vector<size_t> ol, err::PositionInfo& p) : opc(o), opn_list(std::move(ol)), pos(p) {}
 };
 
 struct TryFrame {
@@ -57,6 +58,8 @@ struct CallFrame {
     model::CodeObject* code_object;
     
     std::vector<TryFrame> try_blocks;
+
+    std::vector<model::Object*> iters;
 };
 
 class Vm {
@@ -66,7 +69,7 @@ public:
 
     static std::stack<model::Object*> op_stack;
     static std::vector<std::shared_ptr<CallFrame>> call_stack;
-    static model::Object small_int_pool[200];
+    static model::Int* small_int_pool[201];
 
     static dep::HashMap<model::Object*> builtins;
 
@@ -152,6 +155,11 @@ private:
     static void exec_MARK_HANDLE_ERROR(const Instruction& instruction);
     static void exec_THROW(const Instruction& instruction);
     static void exec_IMPORT(const Instruction& instruction);
+
+    static void exec_CACHE_ITER(const Instruction& instruction);
+    static void exec_GET_ITER(const Instruction& instruction);
+    static void exec_POP_ITER(const Instruction& instruction);
+    static void exec_JUMP_IF_FINISH_ITER(const Instruction& instruction);
 
     static void exec_JUMP(const Instruction& instruction);
     static void exec_JUMP_IF_FALSE(const Instruction& instruction);

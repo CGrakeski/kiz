@@ -106,11 +106,11 @@ Object* str_next(Object* self, const List* args) {
     auto self_str = dynamic_cast<String*>(self);
     if (index < self_str->val.size()) {
         auto res = dep::UTF8String(self_str->val)[index];
-        self->attrs.insert("__current_index__", new Int(index+1));
+        self->attrs.insert("__current_index__", create_int(index+1));
         return create_str(res.to_string());
     }
-    self->attrs.insert("__current_index__", new Int(0));
-    return new Bool(false);
+    self->attrs.insert("__current_index__", create_int(0));
+    return stop_iter_signal;
 }
 
 Object* str_str(Object* self, const List* args) {

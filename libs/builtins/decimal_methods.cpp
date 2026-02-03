@@ -36,7 +36,7 @@ Object* decimal_bool(Object* self, const List* args) {
     assert(self_dec != nullptr && "decimal_bool must be called by Decimal object");
 
     // 0的Decimal（mantissa=0，exponent=0）返回false
-    return new Bool(!(self_dec->val == dep::Decimal(dep::BigInt(0))));
+    return load_bool(!(self_dec->val == dep::Decimal(dep::BigInt(0))));
 }
 
 // Decimal.__add__：加法（self + args[0]），支持Int/Decimal
@@ -163,11 +163,11 @@ Object* decimal_eq(Object* self, const List* args) {
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal cmp_val(another_int->val);
-        return new Bool(self_dec->val == cmp_val);
+        return load_bool(self_dec->val == cmp_val);
     }
     // 与Decimal比较
     else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
-        return new Bool(self_dec->val == another_dec->val);
+        return load_bool(self_dec->val == another_dec->val);
     }
     // 仅允许Int/Decimal
     assert(false && "function Decimal.eq second arg need be Int or Decimal");
@@ -184,11 +184,11 @@ Object* decimal_lt(Object* self, const List* args) {
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal cmp_val(another_int->val);
-        return new Bool(self_dec->val < cmp_val);
+        return load_bool(self_dec->val < cmp_val);
     }
     // 与Decimal比较
-    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
-        return new Bool(self_dec->val < another_dec->val);
+    if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+        return load_bool(self_dec->val < another_dec->val);
     }
     // 仅允许Int/Decimal
     assert(false && "function Decimal.lt second arg need be Int or Decimal");
@@ -205,11 +205,14 @@ Object* decimal_gt(Object* self, const List* args) {
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal cmp_val(another_int->val);
-        return new Bool(self_dec->val > cmp_val);
+        return load_bool(self_dec->val > cmp_val);
     }
     // 与Decimal比较
     else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
-        return new Bool(self_dec->val > another_dec->val);
+        std::cout << self_dec->val.to_string() << std::endl;
+        std::cout << another_dec->val.to_string() << std::endl;
+        std::cout << (self_dec->val > another_dec->val) << std::endl;
+        return load_bool(self_dec->val > another_dec->val);
     }
     // 仅允许Int/Decimal
     assert(false && "function Decimal.gt second arg need be Int or Decimal");

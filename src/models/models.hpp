@@ -120,6 +120,7 @@ inline auto based_native_function = new Object();
 inline auto based_error = new Object();
 inline auto based_decimal = new Object();
 inline auto based_module = new Object();
+inline auto stop_iter_signal = new Object();
 
 class List;
 
@@ -384,7 +385,8 @@ inline auto load_true() {
 }
 
 inline auto load_bool(bool b) {
-    return b ? load_false() : load_true();
+    if (b) { return load_true(); }
+    return load_false();
 }
 
 inline auto create_int(dep::BigInt n) {
@@ -403,7 +405,7 @@ inline auto create_decimal(dep::Decimal n) {
 }
 
 inline auto create_list(std::vector<Object*> n) {
-    auto o = new List(n);
+    auto o = new List(std::move(n));
     o->make_ref();
     return o;
 }

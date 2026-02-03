@@ -157,4 +157,39 @@ void Vm::exec_STOP(const Instruction& instruction) {
     running = false;
 }
 
+void Vm::exec_CACHE_ITER(const Instruction& instruction) {
+    assert(!op_stack.empty());
+    auto iter = op_stack.top();
+    assert(iter != nullptr);
+    assert(!call_stack.empty());
+
+    call_stack.back().get()->iters.push_back(iter);
+}
+
+void Vm::exec_GET_ITER(const Instruction& instruction) {
+    assert(!call_stack.empty());
+    assert(!call_stack.back().get()->iters.empty());
+
+    op_stack.push(
+        call_stack.back().get()->iters.back()
+    );
+}
+
+void Vm::exec_POP_ITER(const Instruction& instruction) {
+    assert(!call_stack.empty());
+    assert(!call_stack.back().get()->iters.empty());
+    call_stack.back().get()->iters.pop_back();
+}
+
+void Vm::exec_JUMP_IF_FINISH_ITER(const Instruction& instruction) {
+    auto obj = fetch_one_from_stack_top();
+
+    size_t target_pc = instruction.opn_list[0];
+    if (obj == model::stop_iter_signal) {
+        call_stack.back()->pc = target_pc;
+        return;
+    }
+    call_stack.back()->pc ++;
+}
+
 }

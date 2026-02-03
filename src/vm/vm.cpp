@@ -26,7 +26,7 @@ dep::HashMap<model::Module*> Vm::loaded_modules{};
 model::Module* Vm::main_module;
 std::stack<model::Object*> Vm::op_stack{};
 std::vector<std::shared_ptr<CallFrame>> Vm::call_stack{};
-model::Object Vm::small_int_pool[200] {};
+model::Int* Vm::small_int_pool[201] {};
 bool Vm::running = false;
 std::string Vm::file_path;
 model::Object* Vm::curr_error {};
@@ -36,9 +36,9 @@ dep::HashMap<model::Object*> Vm::std_modules {};
 Vm::Vm(const std::string& file_path_) {
     file_path = file_path_;
     DEBUG_OUTPUT("entry builtin functions...");
-    // for (dep::BigInt i = 0; i < 199; i+= 1) {
-    //     small_int_pool[i.to_unsigned_long_long()] = model::Int{i}
-    // }
+    for (dep::BigInt i = 0; i < 201; i+= 1) {
+        small_int_pool[i.to_unsigned_long_long()] = new model::Int{i};
+    }
     entry_builtins();
     entry_std_modules();
 }
@@ -101,7 +101,8 @@ void Vm::exec_curr_code() {
         DEBUG_OUTPUT("current stack top : " + (op_stack.empty() ? "[Nothing]" : op_stack.top()->debug_string()));
 
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
-            curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR) {
+            curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR
+            && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER && curr_inst.opc != Opcode::THROW) {
             curr_frame.pc++;
         }
     }
@@ -151,53 +152,58 @@ void Vm::set_and_exec_curr_code(const model::CodeObject* code_object) {
 
 void Vm::execute_instruction(const Instruction& instruction) {
     switch (instruction.opc) {
-        case Opcode::OP_ADD:          exec_ADD(instruction);          break;
-        case Opcode::OP_SUB:          exec_SUB(instruction);          break;
-        case Opcode::OP_MUL:          exec_MUL(instruction);          break;
-        case Opcode::OP_DIV:          exec_DIV(instruction);          break;
-        case Opcode::OP_MOD:          exec_MOD(instruction);          break;
-        case Opcode::OP_POW:          exec_POW(instruction);          break;
-        case Opcode::OP_NEG:          exec_NEG(instruction);          break;
-        case Opcode::OP_EQ:           exec_EQ(instruction);           break;
-        case Opcode::OP_GT:           exec_GT(instruction);           break;
-        case Opcode::OP_LT:           exec_LT(instruction);           break;
-        case Opcode::OP_GE:           exec_GE(instruction);           break;
-        case Opcode::OP_LE:           exec_LE(instruction);           break;
-        case Opcode::OP_NE:           exec_NE(instruction);           break;
-        case Opcode::OP_AND:          exec_AND(instruction);          break;
-        case Opcode::OP_NOT:          exec_NOT(instruction);          break;
-        case Opcode::OP_OR:           exec_OR(instruction);           break;
-        case Opcode::OP_IS:           exec_IS(instruction);           break;
-        case Opcode::OP_IN:           exec_IN(instruction);           break;
-        case Opcode::MAKE_LIST:       exec_MAKE_LIST(instruction);    break;
-        case Opcode::MAKE_DICT:       exec_MAKE_DICT(instruction);    break;
+    case Opcode::OP_ADD:          exec_ADD(instruction);          break;
+    case Opcode::OP_SUB:          exec_SUB(instruction);          break;
+    case Opcode::OP_MUL:          exec_MUL(instruction);          break;
+    case Opcode::OP_DIV:          exec_DIV(instruction);          break;
+    case Opcode::OP_MOD:          exec_MOD(instruction);          break;
+    case Opcode::OP_POW:          exec_POW(instruction);          break;
+    case Opcode::OP_NEG:          exec_NEG(instruction);          break;
+    case Opcode::OP_EQ:           exec_EQ(instruction);           break;
+    case Opcode::OP_GT:           exec_GT(instruction);           break;
+    case Opcode::OP_LT:           exec_LT(instruction);           break;
+    case Opcode::OP_GE:           exec_GE(instruction);           break;
+    case Opcode::OP_LE:           exec_LE(instruction);           break;
+    case Opcode::OP_NE:           exec_NE(instruction);           break;
+    case Opcode::OP_AND:          exec_AND(instruction);          break;
+    case Opcode::OP_NOT:          exec_NOT(instruction);          break;
+    case Opcode::OP_OR:           exec_OR(instruction);           break;
+    case Opcode::OP_IS:           exec_IS(instruction);           break;
+    case Opcode::OP_IN:           exec_IN(instruction);           break;
+    case Opcode::MAKE_LIST:       exec_MAKE_LIST(instruction);    break;
+    case Opcode::MAKE_DICT:       exec_MAKE_DICT(instruction);    break;
 
-        case Opcode::CALL:            exec_CALL(instruction);          break;
-        case Opcode::RET:             exec_RET(instruction);           break;
-        case Opcode::CALL_METHOD:     exec_CALL_METHOD(instruction);   break;
-        case Opcode::GET_ATTR:        exec_GET_ATTR(instruction);      break;
-        case Opcode::SET_ATTR:        exec_SET_ATTR(instruction);      break;
-        case Opcode::GET_ITEM:        exec_GET_ITEM(instruction);      break;
-        case Opcode::SET_ITEM:        exec_SET_ITEM(instruction);      break;
-        case Opcode::LOAD_VAR:        exec_LOAD_VAR(instruction);      break;
-        case Opcode::LOAD_CONST:      exec_LOAD_CONST(instruction);    break;
-        case Opcode::SET_GLOBAL:      exec_SET_GLOBAL(instruction);    break;
-        case Opcode::SET_LOCAL:       exec_SET_LOCAL(instruction);     break;
+    case Opcode::CALL:            exec_CALL(instruction);          break;
+    case Opcode::RET:             exec_RET(instruction);           break;
+    case Opcode::CALL_METHOD:     exec_CALL_METHOD(instruction);   break;
+    case Opcode::GET_ATTR:        exec_GET_ATTR(instruction);      break;
+    case Opcode::SET_ATTR:        exec_SET_ATTR(instruction);      break;
+    case Opcode::GET_ITEM:        exec_GET_ITEM(instruction);      break;
+    case Opcode::SET_ITEM:        exec_SET_ITEM(instruction);      break;
+    case Opcode::LOAD_VAR:        exec_LOAD_VAR(instruction);      break;
+    case Opcode::LOAD_CONST:      exec_LOAD_CONST(instruction);    break;
+    case Opcode::SET_GLOBAL:      exec_SET_GLOBAL(instruction);    break;
+    case Opcode::SET_LOCAL:       exec_SET_LOCAL(instruction);     break;
 
-        case Opcode::ENTER_TRY:       exec_ENTER_TRY(instruction);     break;
-        case Opcode::MARK_HANDLE_ERROR: exec_MARK_HANDLE_ERROR(instruction); break;
-        case Opcode::JUMP_IF_FINISH_HANDLE_ERROR:  exec_JUMP_IF_FINISH_HANDLE_ERROR(instruction);    break;
+    case Opcode::ENTER_TRY:       exec_ENTER_TRY(instruction);     break;
+    case Opcode::MARK_HANDLE_ERROR: exec_MARK_HANDLE_ERROR(instruction); break;
+    case Opcode::JUMP_IF_FINISH_HANDLE_ERROR:  exec_JUMP_IF_FINISH_HANDLE_ERROR(instruction);    break;
 
-        case Opcode::IMPORT:          exec_IMPORT(instruction);        break;
-        case Opcode::LOAD_ERROR:      exec_LOAD_ERROR(instruction);    break;
-        case Opcode::SET_NONLOCAL:    exec_SET_NONLOCAL(instruction);  break;
-        case Opcode::JUMP:            exec_JUMP(instruction);          break;
-        case Opcode::JUMP_IF_FALSE:   exec_JUMP_IF_FALSE(instruction); break;
-        case Opcode::THROW:           exec_THROW(instruction);         break;
-        case Opcode::IS_CHILD:        exec_IS_CHILD(instruction);      break;
-        case Opcode::CREATE_OBJECT:   exec_CREATE_OBJECT(instruction); break;
-        case Opcode::STOP:            exec_STOP(instruction);          break;
-        default:                      assert(false && "execute_instruction: 未知 opcode");
+    case Opcode::CACHE_ITER:  exec_CACHE_ITER(instruction);        break;
+    case Opcode::GET_ITER:    exec_GET_ITER(instruction);          break;
+    case Opcode::POP_ITER:     exec_POP_ITER(instruction);         break;
+    case Opcode::JUMP_IF_FINISH_ITER:     exec_JUMP_IF_FINISH_ITER(instruction);         break;
+
+    case Opcode::IMPORT:          exec_IMPORT(instruction);        break;
+    case Opcode::LOAD_ERROR:      exec_LOAD_ERROR(instruction);    break;
+    case Opcode::SET_NONLOCAL:    exec_SET_NONLOCAL(instruction);  break;
+    case Opcode::JUMP:            exec_JUMP(instruction);          break;
+    case Opcode::JUMP_IF_FALSE:   exec_JUMP_IF_FALSE(instruction); break;
+    case Opcode::THROW:           exec_THROW(instruction);         break;
+    case Opcode::IS_CHILD:        exec_IS_CHILD(instruction);      break;
+    case Opcode::CREATE_OBJECT:   exec_CREATE_OBJECT(instruction); break;
+    case Opcode::STOP:            exec_STOP(instruction);          break;
+    default:                      assert(false && "execute_instruction: 未知 opcode");
     }
 }
 
