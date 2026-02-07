@@ -52,7 +52,7 @@ kiz-lang 是一门 **面向对象（原型链模型）、强类型+动态类型(
 ## 🪄 在线体验
 - **官网**: [kiz.random321.com](http://kiz.random321.com)
 - **在线文档**: [doc.kiz.random321.com](http://doc.kiz.random321.com)
-- **在线运行代码**: [playground.kiz.random321.com](http://playground.kiz.random321.com)
+- **在线运行代码**: [try.kiz.random321.com](http://try.kiz.random321.com)
 
 ## 🧷 下载链接
 - **下载vscode插件**: [#](#)
