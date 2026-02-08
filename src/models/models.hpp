@@ -81,19 +81,25 @@ public:
     [[nodiscard]] size_t get_refc_() const {
         return refc_;
     }
-
+    
     void make_ref() {
-        std::cout << "adding refc: " << this->debug_string() << " " << refc_  << " -> " << refc_+1 << std::endl;
+        // std::cout << "adding refc: " << this->debug_string() << " " << refc_  << " -> " << refc_+1 << std::endl;
         refc_.fetch_add(1, std::memory_order_relaxed);
     }
     void del_ref() {
-        std::cout << "deling refc: " << this->debug_string() << " " << refc_  << " -> " << refc_-1 << std::endl;
-        const size_t old_ref = refc_.fetch_sub(1, std::memory_order_acq_rel);
+        // std::cout << "deling refc: " << this->debug_string() << " " << refc_  << " -> " << refc_-1 << std::endl;
+        // const size_t old_ref = refc_.fetch_sub(1, std::memory_order_acq_rel);
+        //
+        // if (old_ref == 1) {
+        //     std::cout << "deling object " << this->debug_string() << std::endl;
+        //     delete this;
+        // }
+    }
 
-        if (old_ref == 1) {
-            std::cout << "deling object " << this->debug_string() << std::endl;
-            delete this;
-        }
+    void attrs_insert(const std::string& name, Object* o) {
+        assert(o != nullptr);
+        o->make_ref();
+        attrs.insert(name, o);
     }
 
     [[nodiscard]] virtual std::string debug_string() const {

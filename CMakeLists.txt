@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(kiz
-        VERSION 0.5.0
+        VERSION 0.6.0
         LANGUAGES CXX)
 
 # ===================== 基础配置 =====================
@@ -12,7 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 版本号定义
 set(KIZ_VERSION_MAJOR 0)
-set(KIZ_VERSION_MINOR 5)
+set(KIZ_VERSION_MINOR 6)
 set(KIZ_VERSION_PATCH 0)
 set(KIZ_VERSION "${KIZ_VERSION_MAJOR}.${KIZ_VERSION_MINOR}.${KIZ_VERSION_PATCH}")
 
@@ -30,6 +30,9 @@ set(SRC_FILES
         ${PROJECT_SOURCE_DIR}/src/main.cpp
 
         # 编译器模块
+        ${PROJECT_SOURCE_DIR}/src/lexer/lexer.cpp
+        ${PROJECT_SOURCE_DIR}/src/lexer/read_string.cpp
+        ${PROJECT_SOURCE_DIR}/src/lexer/read_number.cpp
         ${PROJECT_SOURCE_DIR}/src/lexer/lexer.cpp
         ${PROJECT_SOURCE_DIR}/src/parser/parser.cpp
         ${PROJECT_SOURCE_DIR}/src/parser/parse_expr.cpp
@@ -49,7 +52,7 @@ set(SRC_FILES
         ${PROJECT_SOURCE_DIR}/src/vm/entry_std_modules.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/entry_builtins.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/handle_error.cpp
-				${PROJECT_SOURCE_DIR}/src/vm/exec_import.cpp
+        ${PROJECT_SOURCE_DIR}/src/vm/exec_import.cpp
 
         # 工具模块
         ${PROJECT_SOURCE_DIR}/src/error/error_reporter.cpp

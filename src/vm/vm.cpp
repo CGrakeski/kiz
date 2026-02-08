@@ -212,9 +212,7 @@ void Vm::execute_instruction(const Instruction& instruction) {
     case Opcode::OP_GE:           exec_GE(instruction);           break;
     case Opcode::OP_LE:           exec_LE(instruction);           break;
     case Opcode::OP_NE:           exec_NE(instruction);           break;
-    case Opcode::OP_AND:          exec_AND(instruction);          break;
     case Opcode::OP_NOT:          exec_NOT(instruction);          break;
-    case Opcode::OP_OR:           exec_OR(instruction);           break;
     case Opcode::OP_IS:           exec_IS(instruction);           break;
     case Opcode::OP_IN:           exec_IN(instruction);           break;
     case Opcode::MAKE_LIST:       exec_MAKE_LIST(instruction);    break;
@@ -250,6 +248,7 @@ void Vm::execute_instruction(const Instruction& instruction) {
     case Opcode::IS_CHILD:        exec_IS_CHILD(instruction);      break;
     case Opcode::CREATE_OBJECT:   exec_CREATE_OBJECT(instruction); break;
     case Opcode::STOP:            exec_STOP(instruction);          break;
+    case Opcode::COPY_TOP:        exec_COPY_TOP(instruction);      break;
     default:                      assert(false && "execute_instruction: 未知 opcode");
     }
 }

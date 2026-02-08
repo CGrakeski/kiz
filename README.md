@@ -1,7 +1,7 @@
 <div align="center">
 <image src="https://pub-141831e61e69445289222976a15b6fb3.r2.dev/Image_to_url_V2/HEIF---imagetourl.cloud-1770101835669-relrd5.jpeg" width=160 height=220/>
 
-<h1> kiz v0.5.0 🎉</h1>
+<h1> kiz v0.6.0 🎉</h1>
 </div>
 
 📌 **现状: 修复bug与预发布正式版本(2026.1)...**
@@ -30,7 +30,7 @@ kiz-lang 是一门 **面向对象（原型链模型）、强类型+动态类型(
 - [从源代码构建kiz指南](docs/从源代码构建kiz指南.md)
 - [项目结构与功能说明](docs/项目结构与功能说明.md)
 - [kiz库开发指南](docs/kiz库开发指南.md)
-- [提交issue/bug-report/feature-request/pull-request指南](docs/提交issue/bug-report/feature-request/pull-request指南.md)
+- [提交issue/bug-report/feature-request/pull-request指南](docs/提交指南.md)
 
 ## 🔆 项目结构
 - **ArgParser**: 解析控制台参数
@@ -46,8 +46,7 @@ kiz-lang 是一门 **面向对象（原型链模型）、强类型+动态类型(
 - **Depends**: 非业务工具类(Bigint, Decimal, U8String, HashMap, Dict)
 
 ## 📃 TODO
-- **feature** 完善Decimal类型的方法 && `List.__call___` && `Str.format()` && f-string 
-- **fixme** 所有报错使用util::err_reporter函数代替现在临时的assert
+- 完善标准库
 
 ## 🪄 在线体验
 - **官网**: [kiz.random321.com](http://kiz.random321.com)

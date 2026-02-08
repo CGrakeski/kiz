@@ -160,6 +160,87 @@ std::unique_ptr<Expr> Parser::parse_factor() {
 std::unique_ptr<Expr> Parser::parse_primary() {
     DEBUG_OUTPUT("parsing primary...");
     const auto tok = skip_token();
+    // 处理f-string解析
+    if (tok.type == TokenType::FStringStart) {
+        std::unique_ptr<Expr> combined_expr = nullptr;
+
+        // 遍历f-string内部Token，直到FStringEnd
+        while (curr_token().type != TokenType::FStringEnd) {
+            if (curr_token().type == TokenType::String) {
+                // 解析字符串片段
+                auto str_tok = skip_token();
+                auto str_expr = std::make_unique<StringExpr>(str_tok.pos, str_tok.text);
+
+                // 拼接加法表达式
+                if (combined_expr == nullptr) {
+                    combined_expr = std::move(str_expr);
+                } else {
+                    combined_expr = std::make_unique<BinaryExpr>(
+                        str_tok.pos,
+                        "+",
+                        std::move(combined_expr),
+                        std::move(str_expr)
+                    );
+                }
+            } else if (curr_token().type == TokenType::InsertExprStart) {
+                // 解析插入表达式
+                const auto insert_expr_start_tok = skip_token(); // 跳过InsertExprStart
+                const auto insert_expr = skip_token();
+
+                // 递归解析表达式（支持任意合法表达式）
+                // 转Str
+                Lexer lexer(file_path);
+                Parser parser(file_path);
+                lexer.prepare(insert_expr.text, insert_expr.pos.lno_start, insert_expr.pos.col_start);
+                auto tokens = lexer.tokenize();
+                auto ast = parser.parse(tokens);
+
+                assert(ast != nullptr);
+                auto expr_ast = dynamic_cast<ExprStmt*>(ast->statements.back().get());
+                assert(expr_ast != nullptr);
+
+                std::unique_ptr<Expr> sub_expr = std::move(expr_ast->expr);
+
+                auto args = std::vector<std::unique_ptr<Expr>> ();
+                args.emplace_back(std::move(sub_expr));
+                auto expr = std::make_unique<CallExpr>(
+                    insert_expr_start_tok.pos,
+                    std::make_unique<IdentifierExpr>(insert_expr_start_tok.pos, "Str"),
+                    std::move(args)
+                );
+
+                // 跳过InsertExprEnd
+                if (curr_token().type != TokenType::InsertExprEnd) {
+                    err::error_reporter(file_path, curr_token().pos, "SyntaxError", "Missing '}' in f-string");
+                }
+                skip_token();
+
+                // 拼接加法表达式
+                if (combined_expr == nullptr) {
+                    combined_expr = std::move(expr);
+                } else {
+                    combined_expr = std::make_unique<BinaryExpr>(
+                        expr->pos,
+                        "+",
+                        std::move(combined_expr),
+                        std::move(expr)
+                    );
+                }
+            } else {
+                err::error_reporter(file_path, curr_token().pos, "SyntaxError", "Invalid token in f-string");
+            }
+        }
+
+        // 跳过FStringEnd Token
+        skip_token();
+
+        // 空f-string返回空字符串
+        if (combined_expr == nullptr) {
+            return std::make_unique<StringExpr>(tok.pos, "");
+        }
+
+        return combined_expr;
+    }
     if (tok.type == TokenType::Number) {
         return std::make_unique<NumberExpr>(tok.pos, tok.text);
     }

@@ -126,9 +126,7 @@ private:
     static void exec_GE(const Instruction& instruction);
     static void exec_LE(const Instruction& instruction);
     static void exec_NE(const Instruction& instruction);
-    static void exec_AND(const Instruction& instruction);
     static void exec_NOT(const Instruction& instruction);
-    static void exec_OR(const Instruction& instruction);
     static void exec_IS(const Instruction& instruction);
     static void exec_IN(const Instruction& instruction);
 
@@ -164,6 +162,7 @@ private:
     static void exec_IS_CHILD(const Instruction& instruction);
     static void exec_CREATE_OBJECT(const Instruction& instruction);
     static void exec_STOP(const Instruction& instruction);
+    static void exec_COPY_TOP(const Instruction& instruction);
 };
 
 } // namespace kiz
