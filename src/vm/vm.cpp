@@ -68,6 +68,7 @@ Vm::Vm(const std::string& file_path_) {
     model::based_decimal->make_ref();
     model::based_module->make_ref();
     model::stop_iter_signal->make_ref();
+    model::based_code_object->make_ref();
     for (dep::BigInt i = 0; i < 201; i+= 1) {
         auto int_obj = new model::Int{i};
         int_obj->make_ref();
@@ -298,7 +299,30 @@ void Vm::assert_argc(size_t argc, const model::List* args) {
         return;
     }
     throw NativeFuncError("ArgcError", std::format(
-        "expect {} but got {}", argc, args->val.size()
+        "expect {} but got {}", args->val.size(), argc
+    ));
+}
+
+void Vm::assert_argc(const std::vector<size_t>& argcs, const model::List* args) {
+    auto actually_count = args->val.size();
+    for (size_t i : argcs) {
+        if (i == actually_count) {
+            return;
+        }
+    }
+
+    std::string argc_str;
+    size_t i = 0;
+    for (size_t argc : argcs) {
+        argc_str += std::to_string(argc);
+        if (i != argcs.size()-1) {
+            argc_str += " or ";
+        }
+        ++ i;
+    }
+
+    throw NativeFuncError("ArgCountError", std::format(
+        "expect {} but got {}", argc_str, actually_count
     ));
 }
 

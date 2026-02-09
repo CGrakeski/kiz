@@ -148,7 +148,7 @@ void Vm::handle_import(const std::string& module_path) {
 
     fs::path current_file_path;
     for (const auto& frame: call_stack) {
-        if (frame->owner->get_type() == model::Object::ObjectType::OT_Module) {
+        if (frame->owner->get_type() == model::Object::ObjectType::Module) {
             const auto m = dynamic_cast<model::Module*>(frame->owner);
             current_file_path = m->path;
         }

@@ -282,6 +282,120 @@ public:
         return res;
     }
 
+    // 在Decimal类中添加一个新的div_round方法
+    [[nodiscard]] Decimal div_round(const Decimal& other, int n=10) const {
+        if (other.mantissa_ == BigInt(0)) {
+            throw std::runtime_error("Division by zero");
+        }
+        if (n < 0) {
+            throw std::runtime_error("n must be non-negative");
+        }
+
+        // 先计算到n+1位小数
+        Decimal temp = this->div(other, n + 1);
+
+        // 将结果转换为字符串
+        std::string str = temp.to_string();
+
+        // 找到小数点
+        size_t dot_pos = str.find('.');
+
+        if (dot_pos == std::string::npos) {
+            return temp;  // 没有小数部分
+        }
+
+        // 分离整数和小数部分
+        std::string int_part = str.substr(0, dot_pos);
+        std::string frac_part = str.substr(dot_pos + 1);
+
+        // 确保小数部分至少有n+1位
+        if (frac_part.size() < static_cast<size_t>(n + 1)) {
+            frac_part.append(n + 1 - frac_part.size(), '0');
+        }
+
+        // 检查第n+1位
+        if (frac_part[n] >= '5') {
+            // 需要进位
+            // 构建前n位小数
+            std::string new_frac = (n > 0) ? frac_part.substr(0, n) : "";
+
+            // 对前n位进行进位操作
+            bool carry = true;
+            for (int i = n - 1; i >= 0 && carry; --i) {
+                if (new_frac[i] == '9') {
+                    new_frac[i] = '0';
+                } else {
+                    new_frac[i] += 1;
+                    carry = false;
+                }
+            }
+
+            // 处理整数部分的进位
+            BigInt int_val(int_part);
+            if (carry) {
+                if (int_part[0] == '-') {
+                    int_val = int_val - BigInt(1);
+                } else {
+                    int_val = int_val + BigInt(1);
+                }
+                int_part = int_val.to_string();
+            }
+
+            // 构建结果字符串
+            std::string result_str = int_part;
+            if (n > 0 && new_frac != std::string(n, '0')) {
+                result_str += "." + new_frac;
+            }
+
+            return Decimal(result_str);
+        } else {
+            // 直接截断到n位
+            if (n == 0) {
+                return Decimal(int_part);
+            } else {
+                std::string result_str = int_part + "." + frac_part.substr(0, n);
+                return Decimal(result_str);
+            }
+        }
+    }
+
+    /**
+     * @brief 判断两个Decimal的小数部分是否相等到指定精度
+     * @param other 要比较的另一个Decimal
+     * @param n 比较到小数点后第n位
+     * @return 如果从小数点第1位到第n位都相等，返回true
+     */
+    [[nodiscard]] bool decimal_weekeq(const Decimal& other, int n) const {
+        assert (n >= 0);
+
+        // 如果两个数完全相等，直接返回true
+        if (*this == other) {
+            return true;
+        }
+
+        // 获取两个数的整数部分
+        BigInt this_int = this->integer_part();
+        BigInt other_int = other.integer_part();
+
+        // 整数部分必须相等
+        if (this_int != other_int) {
+            return false;
+        }
+
+        // 计算10^n用于缩放
+        BigInt scale = BigInt::fast_pow_unsigned(BigInt(10), BigInt(n));
+
+        // 分离小数部分
+        Decimal this_fraction = *this - Decimal(this_int);
+        Decimal other_fraction = other - Decimal(other_int);
+
+        // 将小数部分放大10^n倍并取整
+        BigInt this_scaled = (this_fraction * Decimal(scale)).integer_part();
+        BigInt other_scaled = (other_fraction * Decimal(scale)).integer_part();
+
+        return this_scaled == other_scaled;
+    }
+
     Decimal operator*(const Decimal& other) const {
         BigInt mul_mant = mantissa_ * other.mantissa_;
         Decimal res(mul_mant);

@@ -375,4 +375,22 @@ Object* list_len(Object* self, const List* args) {
     return create_int(dep::BigInt(self_list->val.size()));
 }
 
+Object* list_join(Object* self, const List* args) {
+    auto self_list = dynamic_cast<List*>(self);
+    assert(self_list != nullptr);
+
+    auto sep = kiz::Vm::obj_to_str(builtin::get_one_arg(args));
+
+    std::string text;
+    size_t index = 0;
+    for (auto item: self_list->val) {
+        text += kiz::Vm::obj_to_str(item);
+        if (index != self_list->val.size()-1) {
+            text += sep;
+        }
+        ++index;
+    }
+    return create_str(text);
+}
+
 }  // namespace model

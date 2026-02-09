@@ -40,6 +40,7 @@ void Vm::entry_builtins() {
     model::based_error->attrs_insert("__parent__", model::based_obj);
     model::based_str->attrs_insert("__parent__", model::based_obj);
     model::stop_iter_signal->attrs_insert("__parent__", model::based_obj);
+    model::based_code_object->attrs_insert("__parent__", model::based_obj);
 
     DEBUG_OUTPUT("registering magic methods...");
 
@@ -110,7 +111,9 @@ void Vm::entry_builtins() {
     model::based_decimal->attrs_insert("__bool__", model::create_nfunc(model::decimal_bool));
     model::based_decimal->attrs_insert("__hash__", model::create_nfunc(model::decimal_hash));
     model::based_decimal->attrs_insert("__str__", model::create_nfunc(model::decimal_str));
-    model::based_decimal->attrs_insert("safe_div", model::create_nfunc(model::decimal_safe_div));
+    model::based_decimal->attrs_insert("limit_div", model::create_nfunc(model::decimal_limit_div));
+    model::based_decimal->attrs_insert("round_div", model::create_nfunc(model::decimal_round_div));
+    model::based_decimal->attrs_insert("week_eq", model::create_nfunc(model::decimal_week_eq));
 
     // Dictionary 类型魔法方法
     model::based_dict->attrs_insert("__add__", model::create_nfunc(model::dict_add));
@@ -144,6 +147,7 @@ void Vm::entry_builtins() {
     model::based_list->attrs_insert("count", model::create_nfunc(model::list_count));
     model::based_list->attrs_insert("filter", model::create_nfunc(model::list_filter));
     model::based_list->attrs_insert("len", model::create_nfunc(model::list_len));
+    model::based_list->attrs_insert("join", model::create_nfunc(model::list_join));
 
     // String 类型魔法方法
     model::based_str->attrs_insert("__add__", model::create_nfunc(model::str_add));
@@ -223,6 +227,7 @@ void Vm::entry_builtins() {
     builtins.insert("__Nil", model::based_nil);
     builtins.insert("Error", model::based_error);
     builtins.insert("Module", model::based_module);
+    builtins.insert("__CodeObject", model::based_code_object);
     builtins.insert("__StopIterSignal__", model::stop_iter_signal);
 }
 }

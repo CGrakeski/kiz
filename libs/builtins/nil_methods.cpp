@@ -4,12 +4,7 @@ namespace model {
 
 // Nil.__eq__ 相等判断：仅当另一个对象也是Nil时返回true
 Object* nil_eq(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (nil_eq)");
-    assert(args->val.size() == 1 && "function Nil.eq need 1 arg");
-    
-    auto self_nil = dynamic_cast<Nil*>(self);
-    assert(self_nil != nullptr && "nil_eq must be called by Nil object");
-    
+    kiz::Vm::assert_argc(1, args);
     // Nil仅与自身相等
     auto another_nil = dynamic_cast<Nil*>(args->val[0]);
     return load_bool(another_nil != nullptr);

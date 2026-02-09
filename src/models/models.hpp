@@ -8,6 +8,7 @@
 #pragma once
 
 #include <atomic>
+#include <format>
 #include <functional>
 #include <iomanip>
 #include <ranges>
@@ -40,7 +41,7 @@ namespace magic_name {
     constexpr auto debug_str = "__dstr__";
     constexpr auto getitem = "__getitem__";
     constexpr auto setitem = "__setitem__";
-    constexpr auto contains = "contains";
+    constexpr auto contains = "contains";  // contains不是魔术方法
     constexpr auto next_item = "__next__";
     constexpr auto hash = "__hash__";
     constexpr auto owner_module = "__owner_module__";
@@ -68,14 +69,14 @@ public:
 
     // 对象类型枚举
     enum class ObjectType {
-        OT_Object, OT_Nil, OT_Bool, OT_Int, OT_Rational, OT_String,
-        OT_List, OT_Dictionary, OT_CodeObject, OT_Function,
-        OT_CppFunction, OT_Module, OT_Error, OT_Decimal
+        Object, Nil, Bool, Int, String, Decimal,
+        List, Dictionary, CodeObject, Function,
+        NativeFunction, Module, Error
     };
 
     // 获取实际类型的虚函数
     [[nodiscard]] virtual ObjectType get_type() const {
-        return ObjectType::OT_Object;
+        return ObjectType::Object;
     }
 
     [[nodiscard]] size_t get_refc_() const {
@@ -128,6 +129,7 @@ inline auto based_native_function = new Object();
 inline auto based_error = new Object();
 inline auto based_decimal = new Object();
 inline auto based_module = new Object();
+inline auto based_code_object = new Object();
 inline auto stop_iter_signal = new Object();
 
 class List;
@@ -137,7 +139,7 @@ public:
     std::vector<kiz::Instruction> code;
     std::vector<std::string> names;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_CodeObject;
+    static constexpr ObjectType TYPE = ObjectType::CodeObject;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit CodeObject(const std::vector<kiz::Instruction>& code,
@@ -154,7 +156,7 @@ public:
     std::string path;
     CodeObject* code = nullptr;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_Module;
+    static constexpr ObjectType TYPE = ObjectType::Module;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Module(std::string name, CodeObject *code) : path(std::move(name)), code(code) {
@@ -182,7 +184,7 @@ public:
     size_t argc = 0;
     bool has_rest_params = false;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_Function;
+    static constexpr ObjectType TYPE = ObjectType::Function;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Function(std::string name, CodeObject *code, const size_t argc
@@ -205,7 +207,7 @@ public:
     std::string name;
     std::function<Object*(Object*, List*)> func;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_CppFunction;
+    static constexpr ObjectType TYPE = ObjectType::NativeFunction;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit NativeFunction(std::function<Object*(Object*, List*)> func) : func(std::move(func)) {
@@ -225,7 +227,7 @@ class Int : public Object {
 public:
     dep::BigInt val;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_Int;
+    static constexpr ObjectType TYPE = ObjectType::Int;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Int(dep::BigInt val) : val(std::move(val)) {
@@ -243,7 +245,7 @@ class List : public Object {
 public:
     std::vector<Object*> val;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_List;
+    static constexpr ObjectType TYPE = ObjectType::List;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit List(std::vector<Object*> val) : val(std::move(val)) {
@@ -278,7 +280,7 @@ public:
 class Decimal : public Object {
 public:
     dep::Decimal val;
-    static constexpr ObjectType TYPE = ObjectType::OT_Decimal;
+    static constexpr ObjectType TYPE = ObjectType::Decimal;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
     explicit Decimal(dep::Decimal val) : val(std::move(val)) {
         attrs.insert("__parent__", based_decimal);
@@ -292,7 +294,7 @@ class String : public Object {
 public:
     std::string val;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_String;
+    static constexpr ObjectType TYPE = ObjectType::String;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit String(std::string val) : val(std::move(val)) {
@@ -309,7 +311,7 @@ public:
 class Dictionary : public Object {
 public:
     dep::Dict<std::pair<Object*, Object*>> val;
-    static constexpr ObjectType TYPE = ObjectType::OT_Dictionary;
+    static constexpr ObjectType TYPE = ObjectType::Dictionary;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Dictionary(dep::Dict<std::pair<Object*, Object*>> val_) : val(std::move(val_)) {
@@ -347,7 +349,7 @@ class Bool : public Object {
 public:
     bool val;
 
-    static constexpr ObjectType TYPE = ObjectType::OT_Bool;
+    static constexpr ObjectType TYPE = ObjectType::Bool;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Bool(const bool val) : val(val) {
@@ -361,7 +363,7 @@ public:
 class Nil : public Object {
 public:
 
-    static constexpr ObjectType TYPE = ObjectType::OT_Nil;
+    static constexpr ObjectType TYPE = ObjectType::Nil;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Nil() : Object() {
@@ -375,7 +377,7 @@ public:
 class Error : public Object {
 public:
     std::vector<std::pair<std::string, err::PositionInfo>> positions;
-    static constexpr ObjectType TYPE = ObjectType::OT_Error;
+    static constexpr ObjectType TYPE = ObjectType::Error;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Error(std::vector<std::pair<std::string, err::PositionInfo>> p) {
@@ -447,32 +449,39 @@ inline auto create_nfunc(const std::function<Object*(Object*, List*)>& func, con
 
 inline auto cast_to_int(Object* o) {
     auto obj = dynamic_cast<Int*>(o);
-    assert(obj != nullptr);
+    if (!obj)
+        throw NativeFuncError("TypeError", std::format(
+            "fail to cast {} to Int", kiz::Vm::obj_to_debug_str(o)));
     return obj;
 }
 
 inline auto cast_to_str(Object* o) {
     auto obj = dynamic_cast<String*>(o);
-    assert(obj != nullptr);
+    if (!obj)
+        throw NativeFuncError("TypeError", std::format(
+            "fail to cast {} to Str", kiz::Vm::obj_to_debug_str(o)));
     return obj;
 }
 
 inline auto cast_to_bool(Object* o) {
     auto obj = dynamic_cast<Bool*>(o);
-    assert(obj != nullptr);
-    return obj;
+    if (!obj)
+        throw NativeFuncError("TypeError", std::format(
+            "fail to cast {} to Bool", kiz::Vm::obj_to_debug_str(o)));    return obj;
 }
 
 inline auto cast_to_list(Object* o) {
     auto obj = dynamic_cast<List*>(o);
-    assert(obj != nullptr);
+    if (!obj)
+        throw NativeFuncError("TypeError", std::format(
+            "fail to cast {} to List", kiz::Vm::obj_to_debug_str(o)));
     return obj;
 }
 
 inline auto copy_or_ref(Object* obj) -> Object* {
     switch (obj->get_type()) {
 
-    case Object::ObjectType::OT_List: {
+    case Object::ObjectType::List: {
         std::vector<Object*> new_val;
         for (auto val : cast_to_list(obj)->val) {
             new_val.push_back(copy_or_ref(val));
@@ -480,7 +489,7 @@ inline auto copy_or_ref(Object* obj) -> Object* {
         return create_list(std::move(new_val));
     }
 
-    case Object::ObjectType::OT_Dictionary: {
+    case Object::ObjectType::Dictionary: {
         std::vector<std::pair<
             dep::BigInt, std::pair< Object*, Object* >
         >> elem_list;

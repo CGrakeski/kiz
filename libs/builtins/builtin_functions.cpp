@@ -28,9 +28,7 @@ model::Object* input(model::Object* self, const model::List* args) {
 }
 
 model::Object* ischild(model::Object* self, const model::List* args) {
-    if (args->val.size() != 2) {
-        assert(false && "函数参数不足两个");
-    }
+    kiz::Vm::assert_argc(2, args);
 
     const auto a = args->val[0];
     const auto b = args->val[1];
@@ -177,7 +175,7 @@ model::Object* range(model::Object* self, const model::List* args) {
         auto end_obj = arg_vector[2];
         auto end_int_obj = model::cast_to_int(end_obj);
         end_int = end_int_obj->val;
-    } else return model::load_nil();
+    } else kiz::Vm::assert_argc({1,2,3}, args);
 
     for (dep::BigInt i = start_int; i < end_int; i+=step_int) {
         auto i_obj = new model::Int(i); // 转移所有权
@@ -200,9 +198,6 @@ model::Object* setattr(model::Object* self, const model::List* args) {
 
 model::Object* getattr(model::Object* self, const model::List* args) {
     auto arg_vector = args->val;
-    if (arg_vector.size() == 1) {
-        return model::load_nil();
-    }
     model::Object* obj;
     model::Object* attr_name;
     model::Object* default_value =  model::load_nil();
@@ -237,14 +232,13 @@ model::Object* getattr(model::Object* self, const model::List* args) {
         }
 
     }
-    return model::load_nil();
+    kiz::Vm::assert_argc({2,3,4}, args);
 }
 
 model::Object* delattr(model::Object* self, const model::List* args) {
+    kiz::Vm::assert_argc(2, args);
     auto arg_vector = args->val;
-    if (arg_vector.size() == 1) {
-        return model::load_nil();
-    }
+
     model::Object* obj = arg_vector[0];
     model::Object* attr_name = arg_vector[1];
     obj->attrs.del(model::cast_to_str(attr_name)->val);
@@ -253,9 +247,6 @@ model::Object* delattr(model::Object* self, const model::List* args) {
 
 model::Object* hasattr(model::Object* self, const model::List* args) {
     auto arg_vector = args->val;
-    if (arg_vector.size() == 1) {
-        return model::load_nil();
-    }
     model::Object* obj;
     model::Object* attr_name;
     if (arg_vector.size() == 2) {
@@ -286,7 +277,7 @@ model::Object* hasattr(model::Object* self, const model::List* args) {
             return model::load_false();
         }
     }
-    return model::load_nil();
+    kiz::Vm::assert_argc({2,3}, args);
 }
 
 model::Object* get_refc(model::Object* self, const model::List* args) {
@@ -310,9 +301,7 @@ model::Object* create(model::Object* self, const model::List* args) {
     const auto new_obj = new model::Object();
     new_obj->make_ref(); // 初始化引用计数为1
 
-    // 正确管理传入obj的引用
-    obj->make_ref();
-    new_obj->attrs.insert("__parent__", obj);
+    new_obj->attrs_insert("__parent__", obj);
     obj->del_ref(); // 计数平衡
 
     return new_obj;
@@ -322,20 +311,19 @@ model::Object* type_of_obj(model::Object* self, const model::List* args) {
     auto for_check = get_one_arg(args);
     std::string type_str;
     switch (for_check->get_type()) {
-        case model::Object::ObjectType::OT_Bool: type_str = "Bool"; break;
-        case model::Object::ObjectType::OT_Int: type_str = "Int"; break;
-        case model::Object::ObjectType::OT_Rational: type_str = "__Rational"; break;
-        case model::Object::ObjectType::OT_String: type_str = "Str"; break;
-        case model::Object::ObjectType::OT_Object: type_str = "Object"; break;
-        case model::Object::ObjectType::OT_Nil: type_str = "__Nil"; break;
-        case model::Object::ObjectType::OT_Error: type_str = "Error"; break;
-        case model::Object::ObjectType::OT_Function: type_str = "Func"; break;
-        case model::Object::ObjectType::OT_List: type_str = "List"; break;
-        case model::Object::ObjectType::OT_Dictionary: type_str = "Dict"; break;
-        case model::Object::ObjectType::OT_Decimal: type_str = "Decimal"; break;
-        case model::Object::ObjectType::OT_CodeObject: type_str = "__CodeObject"; break;
-        case model::Object::ObjectType::OT_CppFunction: type_str = "NFunc"; break;
-        case model::Object::ObjectType::OT_Module: type_str = "Module"; break;
+        case model::Object::ObjectType::Bool: type_str = "Bool"; break;
+        case model::Object::ObjectType::Int: type_str = "Int"; break;
+        case model::Object::ObjectType::String: type_str = "Str"; break;
+        case model::Object::ObjectType::Object: type_str = "Object"; break;
+        case model::Object::ObjectType::Nil: type_str = "__Nil"; break;
+        case model::Object::ObjectType::Error: type_str = "Error"; break;
+        case model::Object::ObjectType::Function: type_str = "Func"; break;
+        case model::Object::ObjectType::List: type_str = "List"; break;
+        case model::Object::ObjectType::Dictionary: type_str = "Dict"; break;
+        case model::Object::ObjectType::Decimal: type_str = "Decimal"; break;
+        case model::Object::ObjectType::CodeObject: type_str = "__CodeObject"; break;
+        case model::Object::ObjectType::NativeFunction: type_str = "NFunc"; break;
+        case model::Object::ObjectType::Module: type_str = "Module"; break;
         default: type_str = "<Unknown>"; break;
     }
     return model::create_str(type_str);

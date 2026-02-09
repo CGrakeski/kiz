@@ -238,17 +238,17 @@ Object* decimal_hash(Object* self, const List* args) {
 
 
 // Decimal.safe_div：除法（self / args[0]），支持Int/Decimal（保留指定位小数）
-Object* decimal_safe_div(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_safe_div)");
-    assert(args->val.size() == 2 && "function Decimal.safe_div need 2 args: divisor, decimal_places");
+Object* decimal_limit_div(Object* self, const List* args) {
+   kiz::Vm::assert_argc(2, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
 
     // 解析保留小数位数（转为int，避免BigInt越界）
-    const auto n_obj = dynamic_cast<Int*>(args->val[1]);
-    assert(n_obj != nullptr && "decimal_safe_div second arg must be Int (decimal places)");
+    const auto n_obj = cast_to_int(args->val[1]);
+
     // 确保n是小整数（避免超出int范围）
-    assert(n_obj->val <= dep::BigInt(1000) && "decimal_safe_div: decimal places too large (max 1000)");
+    if(n_obj->val >= dep::BigInt(1000))
+        throw NativeFuncError("CalculateError", "decimal_limit_div: decimal places too large (max 1000)");
     const int n = static_cast<int>(n_obj->val.to_unsigned_long_long()); // 现在能正确解析20→20
 
     dep::Decimal divisor;
@@ -261,16 +261,91 @@ Object* decimal_safe_div(Object* self, const List* args) {
         divisor = another_dec->val;
     }
     else {
-        assert(false && "function Decimal.safe_div first arg need be Int or Decimal");
+        throw NativeFuncError("TypeError", "function Decimal.safe_div first arg need be Int or Decimal");
     }
 
     // 检查除数为0
     if (divisor == dep::Decimal(dep::BigInt(0))) {
-        assert(false && "decimal_safe_div: division by zero");
+        throw NativeFuncError("CalculateError", "decimal_limit_div: division by zero");
     }
 
     // 调用修复后的div方法
     dep::Decimal res = self_dec->val.div(divisor, n);
+    return new Decimal(res);
+}
+
+// Decimal.week_eq
+Object* decimal_week_eq(Object* self, const List* args) {
+    kiz::Vm::assert_argc(2, args);
+
+    const auto self_dec = dynamic_cast<Decimal*>(self);
+
+    // 解析保留小数位数
+    const auto n_obj = cast_to_int(args->val[1]);
+
+    // 确保n是小整数
+    if (n_obj->val <= dep::BigInt(0))
+        throw NativeFuncError("CalculateError", "decimal_weekeq: decimal places must be positive");
+    if (n_obj->val >= dep::BigInt(1000))
+        throw NativeFuncError("CalculateError", "decimal_weekeq: decimal places too large (max 999)");
+
+    const int n = static_cast<int>(n_obj->val.to_unsigned_long_long());
+
+    // 处理要比较的数
+    dep::Decimal other_dec;
+    if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
+        other_dec = dep::Decimal(another_int->val);
+    }
+    else if (auto another_dec_obj = dynamic_cast<Decimal*>(args->val[0])) {
+        other_dec = another_dec_obj->val;
+    }
+    else {
+        throw NativeFuncError("TypeError", "function Decimal.weekeq first arg need be Int or Decimal");
+    }
+
+    // 调用Decimal类的方法进行比较
+    bool result = self_dec->val.decimal_weekeq(other_dec, n);
+
+    return load_bool(result);
+}
+
+// Decimal.round_div
+Object* decimal_round_div(Object* self, const List* args) {
+    kiz::Vm::assert_argc(2, args);
+
+    const auto self_dec = dynamic_cast<Decimal*>(self);
+
+    // 解析保留小数位数
+    const auto n_obj = cast_to_int(args->val[1]);
+
+    // 确保n是小整数
+    if (n_obj->val < dep::BigInt(0))
+        throw NativeFuncError("CalculateError", "decimal_round_div: decimal places must be non-negative");
+    if (n_obj->val >= dep::BigInt(1000))
+        throw NativeFuncError("CalculateError", "decimal_round_div: decimal places too large (max 999)");
+
+    const int n = static_cast<int>(n_obj->val.to_unsigned_long_long());
+
+    dep::Decimal divisor;
+    // 处理除数为Int
+    if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
+        divisor = dep::Decimal(another_int->val);
+    }
+    // 处理除数为Decimal
+    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+        divisor = another_dec->val;
+    }
+    else {
+        throw NativeFuncError("TypeError", "function Decimal.round_div first arg need be Int or Decimal");
+    }
+
+    // 检查除数为0
+    if (divisor == dep::Decimal(dep::BigInt(0))) {
+        throw NativeFuncError("CalculateError", "decimal_round_div: division by zero");
+    }
+
+    // 使用新的div_round方法
+    dep::Decimal res = self_dec->val.div_round(divisor, n);
     return new Decimal(res);
 }
 
