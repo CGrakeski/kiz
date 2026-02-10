@@ -24,14 +24,13 @@ Object* str_bool(Object* self, const List* args) {
 
 // String.__add__：字符串拼接（self + 传入String，返回新String，不修改原对象）
 Object* str_add(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (str_add)");
-    assert(args->val.size() == 1 && "function String.add need 1 arg");
-    
+    kiz::Vm::assert_argc(1, args);
     auto self_str = dynamic_cast<String*>(self);
-    assert(self_str != nullptr && "str_add must be called by String object");
+    assert(self_str != nullptr);
     
     auto another_str = dynamic_cast<String*>(args->val[0]);
-    assert(another_str != nullptr && "String.add only supports String type argument");
+    if (!another_str)
+        throw NativeFuncError("TypeError", "String.add only supports String type argument");
     
     // 拼接并返回新String
     return create_str(self_str->val + another_str->val);
@@ -39,15 +38,15 @@ Object* str_add(Object* self, const List* args) {
 
 // String.__mul__：字符串重复n次（self * n，返回新String，n为非负整数）
 Object* str_mul(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (str_mul)");
-    assert(args->val.size() == 1 && "function String.mul need 1 arg");
-    
+    kiz::Vm::assert_argc(1, args);
     auto self_str = dynamic_cast<String*>(self);
-    assert(self_str != nullptr && "str_mul must be called by String object");
+    assert(self_str != nullptr);
     
     auto times_int = dynamic_cast<Int*>(args->val[0]);
-    assert(times_int != nullptr && "String.mul only supports Int type argument");
-    assert(times_int->val >= dep::BigInt(0) && "String.mul requires non-negative integer argument");
+    if (!times_int)
+        throw NativeFuncError("TypeError","String.mul only supports Int type argument");
+    if(times_int->val < dep::BigInt(0))
+        throw NativeFuncError("TypeError", "String.mul requires non-negative integer argument");
     
     std::string result;
     dep::BigInt times = times_int->val;
@@ -60,28 +59,28 @@ Object* str_mul(Object* self, const List* args) {
 
 // String.__eq__：判断两个字符串是否相等 self == x
 Object* str_eq(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (str_eq)");
-    assert(args->val.size() == 1 && "function String.eq need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_str = dynamic_cast<String*>(self);
-    assert(self_str != nullptr && "str_eq must be called by String object");
+    assert(self_str != nullptr);
     
     auto another_str = dynamic_cast<String*>(args->val[0]);
-    assert(another_str != nullptr && "String.eq only supports String type argument");
+    if (! another_str)
+        throw NativeFuncError("TypeError","String.eq only supports String type argument");
     
     return load_bool(self_str->val == another_str->val);
 };
 
 // String.__contains__：判断是否包含子字符串 x in self
 Object* str_contains(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (str_contains)");
-    assert(args->val.size() == 1 && "function String.contains need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_str = dynamic_cast<String*>(self);
-    assert(self_str != nullptr && "str_contains must be called by String object");
+    assert(self_str != nullptr);
     
     auto sub_str = dynamic_cast<String*>(args->val[0]);
-    assert(sub_str != nullptr && "String.contains only supports String type argument");
+    if(! sub_str)
+        throw NativeFuncError("TypeError", "String.contains only supports String type argument");
     
     bool exists = self_str->val.find(sub_str->val) != std::string::npos;
     return load_bool(exists);
@@ -90,7 +89,7 @@ Object* str_contains(Object* self, const List* args) {
 // String.__hash__
 Object* str_hash(Object* self, const List* args) {
     auto self_str = dynamic_cast<String*>(self);
-    assert(self_str != nullptr && "str_hash must be called by String object");
+    assert(self_str != nullptr);
     auto hashed_str = dep::hash_string(self_str->val);
     return create_int(dep::BigInt(hashed_str));
 }
@@ -104,22 +103,26 @@ Object* str_next(Object* self, const List* args) {
     auto index = cast_to_int(curr_idx) ->val.to_unsigned_long_long();
 
     auto self_str = dynamic_cast<String*>(self);
+    assert(self_str != nullptr);
+
     if (index < self_str->val.size()) {
         auto res = dep::UTF8String(self_str->val)[index];
-        self->attrs.insert("__current_index__", create_int(index+1));
+        self->attrs_insert("__current_index__", create_int(index+1));
         return create_str(res.to_string());
     }
-    self->attrs.insert("__current_index__", create_int(0));
-    return stop_iter_signal;
+    self->attrs_insert("__current_index__", create_int(0));
+    return load_stop_iter_signal();
 }
 
 Object* str_str(Object* self, const List* args) {
     auto self_str = dynamic_cast<String*>(self);
+    assert(self_str != nullptr);
     return create_str(self_str->val);
 }
 
 Object* str_dstr(Object* self, const List* args) {
     auto self_str = dynamic_cast<String*>(self);
+    assert(self_str != nullptr);
     return create_str("\"" + self_str->val + "\"");
 }
 
@@ -127,8 +130,12 @@ Object* str_getitem(Object* self, const List* args) {
     auto self_str = dynamic_cast<String*>(self);
     auto idx_obj = cast_to_int(builtin::get_one_arg(args));
     auto index = idx_obj->val.to_unsigned_long_long();
+    auto text = dep::UTF8String(self_str->val);
 
-    return create_str( dep::UTF8String(self_str->val)[index] .to_string() );
+    if (index < text.size()) {
+        throw NativeFuncError("GetItemError", std::format("index {} out of range", index));
+    }
+    return create_str( text[index] .to_string() );
 }
 
 Object* str_foreach(Object* self, const List* args) {
@@ -228,7 +235,7 @@ Object* str_is_digit(Object* self, const List* args) {
 Object* str_substr(Object* self, const List* args) {
     auto self_str = cast_to_str(self);
     auto args_vec = args->val;
-    assert(!args_vec.empty());
+    kiz::Vm::assert_argc(2, args);
 
     size_t pos = cast_to_int(args_vec[0])->val.to_unsigned_long_long();
     size_t len = 1;

@@ -9,7 +9,7 @@ inline model::Object* get_one_arg(const model::List* args) {
     if (!args->val.empty()) {
         return args->val[0];
     }
-    assert(false && "函数参数不足一个");
+    kiz::Vm::assert_argc(1, args);
 }
 
 inline model::Object* check_based_object_inner(
@@ -54,6 +54,6 @@ model::Object* hasattr(model::Object* self, const model::List* args);
 model::Object* get_refc(model::Object* self, const model::List* args);
 model::Object* create(model::Object* self, const model::List* args);
 model::Object* type_of_obj(model::Object* self, const model::List* args);
-
+model::Object* debug_str(model::Object* self, const model::List* args);
 
 }

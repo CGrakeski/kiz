@@ -27,91 +27,86 @@ Object* decimal_call(Object* self, const List* args) {
         val = dep::Decimal(0);
     }
 
-    return new Decimal(val);
+    return create_decimal(val);
 }
 
 // Decimal.__bool__：非零判断（0为false，其余为true）
 Object* decimal_bool(Object* self, const List* args) {
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_bool must be called by Decimal object");
-
+    assert(self_dec != nullptr);
     // 0的Decimal（mantissa=0，exponent=0）返回false
-    return load_bool(!(self_dec->val == dep::Decimal(dep::BigInt(0))));
+    return load_bool(!(self_dec->val == dep::Decimal(0)));
 }
 
 // Decimal.__add__：加法（self + args[0]），支持Int/Decimal
 Object* decimal_add(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_add)");
-    assert(args->val.size() == 1 && "function Decimal.add need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_add must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int相加
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal res = self_dec->val + another_int->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 与Decimal相加
-    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+    if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
         dep::Decimal res = self_dec->val + another_dec->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.add second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.add second arg need be Int or Decimal");
 }
 
 // Decimal.__sub__：减法（self - args[0]），支持Int/Decimal
 Object* decimal_sub(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_sub)");
-    assert(args->val.size() == 1 && "function Decimal.sub need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_sub must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int相减
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal res = self_dec->val - another_int->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 与Decimal相减
-    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+    if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
         dep::Decimal res = self_dec->val - another_dec->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.sub second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.sub second arg need be Int or Decimal");
 }
 
 // Decimal.__mul__：乘法（self * args[0]），支持Int/Decimal
 Object* decimal_mul(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_mul)");
-    assert(args->val.size() == 1 && "function Decimal.mul need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_mul must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int相乘
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal res = self_dec->val * another_int->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 与Decimal相乘
-    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+    if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
         dep::Decimal res = self_dec->val * another_dec->val;
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.mul second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.mul second arg need be Int or Decimal");
 }
 
 // Decimal.__div__：除法（self / args[0]），支持Int/Decimal（默认保留10位小数）
 Object* decimal_div(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_div)");
-    assert(args->val.size() == 1 && "function Decimal.div need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_div must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 除数不能为0（提前检查）
     auto check_zero = [](const dep::Decimal& val) {
@@ -121,44 +116,49 @@ Object* decimal_div(Object* self, const List* args) {
     // 与Int相除
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
         dep::Decimal divisor(another_int->val);
-        assert(!check_zero(divisor) && "decimal_div: division by zero");
+        if(check_zero(divisor))
+            throw NativeFuncError("CalculateError", "decimal_div: division by zero");
+
         dep::Decimal res = self_dec->val.div(divisor, 10); // 保留10位小数
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 与Decimal相除
     if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
-        assert(!check_zero(another_dec->val) && "decimal_div: division by zero");
+        if(check_zero(another_dec->val) )
+            throw NativeFuncError("CalculateError",  "decimal_div: division by zero");
+
         dep::Decimal res = self_dec->val.div(another_dec->val, 10); // 保留10位小数
-        return new Decimal(res);
+        return create_decimal(res);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.div second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.div second arg need be Int or Decimal");
 }
 
 // Decimal.__pow__：幂运算（self ^ args[0]），仅支持Int类型的指数（非负）
 Object* decimal_pow(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_pow)");
-    assert(args->val.size() == 1 && "function Decimal.pow need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_pow must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 指数仅支持Int（非负）
     auto exp_int = dynamic_cast<Int*>(args->val[0]);
-    assert(exp_int != nullptr && "function Decimal.pow second arg need be Int");
-    assert(!exp_int->val.is_negative() && "decimal_pow: negative exponent not supported");
+    if (!exp_int)
+        throw NativeFuncError("TypeError", "Decimal.pow second arg need be Int");
+
+    if(exp_int->val.is_negative())
+        throw NativeFuncError("CalculateError", "decimal_pow: negative exponent not supported");
 
     dep::Decimal res = self_dec->val.pow(exp_int->val);
-    return new Decimal(res);
+    return create_decimal(res);
 }
 
 // Decimal.__eq__：相等判断（self == args[0]），支持Int/Decimal
 Object* decimal_eq(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_eq)");
-    assert(args->val.size() == 1 && "function Decimal.eq need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_eq must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
@@ -166,20 +166,19 @@ Object* decimal_eq(Object* self, const List* args) {
         return load_bool(self_dec->val == cmp_val);
     }
     // 与Decimal比较
-    else if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
+    if (auto another_dec = dynamic_cast<Decimal*>(args->val[0])) {
         return load_bool(self_dec->val == another_dec->val);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.eq second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.eq second arg need be Int or Decimal");
 }
 
 // Decimal.__lt__：小于判断（self < args[0]），支持Int/Decimal
 Object* decimal_lt(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_lt)");
-    assert(args->val.size() == 1 && "function Decimal.lt need 1 arg");
+    kiz::Vm::assert_argc(1, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_lt must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
@@ -191,16 +190,16 @@ Object* decimal_lt(Object* self, const List* args) {
         return load_bool(self_dec->val < another_dec->val);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.lt second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.lt second arg need be Int or Decimal");
 }
 
 // Decimal.__gt__：大于判断（self > args[0]），支持Int/Decimal
 Object* decimal_gt(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_gt)");
-    assert(args->val.size() == 1 && "function Decimal.gt need 1 arg");
+    kiz::Vm::assert_argc(1, args);
+
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_gt must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 与Int比较
     if (auto another_int = dynamic_cast<Int*>(args->val[0])) {
@@ -212,34 +211,32 @@ Object* decimal_gt(Object* self, const List* args) {
         return load_bool(self_dec->val > another_dec->val);
     }
     // 仅允许Int/Decimal
-    assert(false && "function Decimal.gt second arg need be Int or Decimal");
+    throw NativeFuncError("TypeError", "Decimal.gt second arg need be Int or Decimal");
 }
 
 // Decimal.__neg__：取反操作(-self)
 Object* decimal_neg(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (decimal_neg)");
-    assert(args->val.empty() && "function Decimal.neg need 0 arg"); // 取反无参数
-
     // 确保调用者是Decimal对象
     auto self_dec = dynamic_cast<Decimal*>(self);
-    assert(self_dec != nullptr && "decimal_neg must be called by Decimal object");
+    assert(self_dec != nullptr);
 
     // 对Decimal值取反（0 - self_val 或直接用重载的-运算符）
     dep::Decimal neg_val = dep::Decimal(dep::BigInt(0)) - self_dec->val;
 
-    return new Decimal(neg_val);
+    return create_decimal(neg_val);
 }
 
 // Decimal.__hash__
 Object* decimal_hash(Object* self, const List* args) {
     const auto self_dec = dynamic_cast<Decimal*>(self);
-    return new Int(self_dec->val.hash());
+    assert(self_dec != nullptr);
+    return create_int(self_dec->val.hash());
 }
 
 
-// Decimal.safe_div：除法（self / args[0]），支持Int/Decimal（保留指定位小数）
+// Decimal.limit_div：除法（self / args[0]），支持Int/Decimal（保留指定位小数）
 Object* decimal_limit_div(Object* self, const List* args) {
-   kiz::Vm::assert_argc(2, args);
+    kiz::Vm::assert_argc(2, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
 
@@ -261,7 +258,7 @@ Object* decimal_limit_div(Object* self, const List* args) {
         divisor = another_dec->val;
     }
     else {
-        throw NativeFuncError("TypeError", "function Decimal.safe_div first arg need be Int or Decimal");
+        throw NativeFuncError("TypeError", "function Decimal.limit_div first arg need be Int or Decimal");
     }
 
     // 检查除数为0
@@ -271,11 +268,11 @@ Object* decimal_limit_div(Object* self, const List* args) {
 
     // 调用修复后的div方法
     dep::Decimal res = self_dec->val.div(divisor, n);
-    return new Decimal(res);
+    return create_decimal(res);
 }
 
 // Decimal.week_eq
-Object* decimal_week_eq(Object* self, const List* args) {
+Object* decimal_approx(Object* self, const List* args) {
     kiz::Vm::assert_argc(2, args);
 
     const auto self_dec = dynamic_cast<Decimal*>(self);
@@ -285,9 +282,9 @@ Object* decimal_week_eq(Object* self, const List* args) {
 
     // 确保n是小整数
     if (n_obj->val <= dep::BigInt(0))
-        throw NativeFuncError("CalculateError", "decimal_weekeq: decimal places must be positive");
+        throw NativeFuncError("CalculateError", "decimal_approx: decimal places must be positive");
     if (n_obj->val >= dep::BigInt(1000))
-        throw NativeFuncError("CalculateError", "decimal_weekeq: decimal places too large (max 999)");
+        throw NativeFuncError("CalculateError", "decimal_approx: decimal places too large (max 999)");
 
     const int n = static_cast<int>(n_obj->val.to_unsigned_long_long());
 
@@ -300,7 +297,7 @@ Object* decimal_week_eq(Object* self, const List* args) {
         other_dec = another_dec_obj->val;
     }
     else {
-        throw NativeFuncError("TypeError", "function Decimal.weekeq first arg need be Int or Decimal");
+        throw NativeFuncError("TypeError", "function Decimal.approx first arg need be Int or Decimal");
     }
 
     // 调用Decimal类的方法进行比较
@@ -346,7 +343,7 @@ Object* decimal_round_div(Object* self, const List* args) {
 
     // 使用新的div_round方法
     dep::Decimal res = self_dec->val.div_round(divisor, n);
-    return new Decimal(res);
+    return create_decimal(res);
 }
 
 Object* decimal_str(Object* self, const List* args) {

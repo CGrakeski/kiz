@@ -76,10 +76,10 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
         } else {
             actual_argc = args_list->val.size();
         }
-        if (actual_argc != required_argc and !func->has_rest_params) {
-            throw NativeFuncError("ArgsError", "expect " + std::to_string(required_argc) +
-                            " args, actually: " + std::to_string(actual_argc) + "");
-        }
+        if (actual_argc != required_argc and !func->has_rest_params)
+            throw NativeFuncError("ArgCountError", std::format(
+                "expect {} arguments but got {} arguments", required_argc, actual_argc
+            ));
 
         // 创建新调用帧
 

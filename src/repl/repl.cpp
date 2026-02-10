@@ -24,7 +24,6 @@
  * @brief 控制台编码自适应转换为UTF-8字符串
  * @param src 从控制台getline读取的原始字符串（GBK/UTF-8）
  * @return 转换后的UTF-8字符串，非GBK控制台直接返回原字符串
- * @throw std::runtime_error 编码转换失败时抛出异常（含错误信息）
  */
 std::string to_utf8str(std::string src) {
     // 非Windows平台（Linux/macOS）默认控制台是UTF-8，直接返回原字符串
@@ -51,7 +50,7 @@ std::string to_utf8str(std::string src) {
     // 第一步转换失败：获取宽字符缓冲区大小失败
     if (wchar_len == 0) {
         DWORD err_code = GetLastError();
-        throw std::runtime_error("GBK to UTF-16 convert failed, error code: " + std::to_string(err_code));
+        throw KizStopRunningSignal("GBK to UTF-16 convert failed, error code: " + std::to_string(err_code));
     }
 
     // 分配UTF-16宽字符缓冲区（使用vector自动管理内存，避免手动new/delete泄漏）
@@ -68,7 +67,7 @@ std::string to_utf8str(std::string src) {
     // 第二步转换失败：实际GBK→UTF-16转换失败
     if (convert_res == 0) {
         DWORD err_code = GetLastError();
-        throw std::runtime_error("GBK to UTF-16 convert failed, error code: " + std::to_string(err_code));
+        throw KizStopRunningSignal("GBK to UTF-16 convert failed, error code: " + std::to_string(err_code));
     }
 
     // UTF-16→UTF-8转换：获取UTF-8缓冲区所需大小
@@ -85,7 +84,7 @@ std::string to_utf8str(std::string src) {
     // 第三步转换失败：获取UTF-8缓冲区大小失败
     if (utf8_len == 0) {
         DWORD err_code = GetLastError();
-        throw std::runtime_error("UTF-16 to UTF-8 convert failed, error code: " + std::to_string(err_code));
+        throw KizStopRunningSignal("UTF-16 to UTF-8 convert failed, error code: " + std::to_string(err_code));
     }
 
     // 分配UTF-8缓冲区

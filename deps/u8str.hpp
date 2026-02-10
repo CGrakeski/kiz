@@ -385,9 +385,6 @@ public:
     }
 
     UTF8Char& operator[](size_t index) {
-        if (index >= arr_.size()) {
-            throw std::out_of_range("UTF8String index out of range");
-        }
         return arr_[index];
     }
 

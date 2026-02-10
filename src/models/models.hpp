@@ -217,7 +217,7 @@ public:
     return "<NativeFunction" +
            (name.empty() 
             ? "" 
-            : ": path='" + name + "'"
+            : ": name='" + name + "'"
             ) 
             + " at " + ptr_to_string(this) + ">";
 }
@@ -416,6 +416,11 @@ inline auto load_bool(bool b) {
     return load_false();
 }
 
+inline auto load_stop_iter_signal() {
+    stop_iter_signal->make_ref();
+    return stop_iter_signal;
+}
+
 inline auto create_int(dep::BigInt n) {
     auto o = new Int(std::move(n));
     o->make_ref();
@@ -445,6 +450,12 @@ inline auto create_nfunc(const std::function<Object*(Object*, List*)>& func, con
     o->make_ref();
     o->name = name;
     return o;
+}
+
+inline auto create_module(std::string name) {
+    auto m = new Module(std::move(name));
+    m->make_ref();
+    return m;
 }
 
 inline auto cast_to_int(Object* o) {

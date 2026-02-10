@@ -5,9 +5,10 @@
 
 namespace io_lib {
 
-std::streamsize util_write(const std::string& path,
-                         const std::string& text,
-                         std::streamoff n = 0
+std::streamsize util_write(
+    const std::string& path,
+    const std::string& text,
+    std::streamoff n = 0
 ) {
     // 空文本直接返回，不执行任何写入操作
     if (text.empty()) {
@@ -72,17 +73,13 @@ std::streamsize util_write(const std::string& path,
 }
 
 model::Object* init_module(model::Object* self, const model::List* args) {
-    auto mod = new model::Module("io_lib");
-    mod->make_ref(); // 修复1：Module创建后立即计数
+    auto mod = model::create_module("io_lib");
 
-    // 修复2：NativeFunction创建后立即计数，容器合法持有
-    auto fast_read_fun = new model::NativeFunction(fast_read);
-    fast_read_fun->make_ref();
-    auto fast_write_fun = new model::NativeFunction(fast_write);
-    fast_write_fun->make_ref();
+    auto fast_read_fun = model::create_nfunc(fast_read);
+    auto fast_write_fun = model::create_nfunc(fast_write);
 
-    mod->attrs.insert("fast_read", fast_read_fun);
-    mod->attrs.insert("fast_write", fast_write_fun);
+    mod->attrs_insert("fast_read", fast_read_fun);
+    mod->attrs_insert("fast_write", fast_write_fun);
 
     return mod;
 }
@@ -90,7 +87,8 @@ model::Object* init_module(model::Object* self, const model::List* args) {
 model::Object* fast_read(model::Object* self, const model::List* args) {
     auto path = builtin::get_one_arg(args);
     auto path_str = dynamic_cast<model::String*>(path);
-    assert(path_str != nullptr);
+    if (! path_str)
+        throw NativeFuncError("TypeError", "io.fast_read only supports one String type argument");
 
     std::ifstream file(path_str->val, std::ios::binary | std::ios::in);
 
@@ -101,27 +99,29 @@ model::Object* fast_read(model::Object* self, const model::List* args) {
     auto content = std::string(std::istreambuf_iterator(file),
                        std::istreambuf_iterator<char>()
     );
-    auto str_obj = new model::String(content);
-    str_obj->make_ref(); // 修复3：String创建后立即计数
+    auto str_obj = model::create_str(content);
     return str_obj;
 }
 
 model::Object* fast_write(model::Object* self, const model::List* args) {
     auto args_vec = args->val;
-    assert(args_vec.size() == 3); // 修复：修正断言逻辑，要求传入3个参数
+    kiz::Vm::assert_argc(3, args);
 
     auto path_str = dynamic_cast<model::String*>(args_vec[0]);
-    assert(path_str != nullptr);
+    if (! path_str)
+        throw NativeFuncError("TypeError", "io.fast_write[0] supports String type argument");
 
     auto text_str = dynamic_cast<model::String*>(args_vec[1]);
-    assert(text_str != nullptr);
+    if (! text_str)
+        throw NativeFuncError("TypeError", "io.fast_write[1] supports String type argument");
 
     auto start_idx = dynamic_cast<model::Int*>(args_vec[2]);
-    assert(start_idx != nullptr);
+    if (! start_idx)
+        throw NativeFuncError("TypeError", "io.fast_write[2] supports Int type argument");
 
     util_write(path_str->val, text_str->val, start_idx->val.to_unsigned_long_long());
 
-    return model::load_nil(); // 无错，load_nil()内部已计数
+    return model::load_nil();
 }
 
 }

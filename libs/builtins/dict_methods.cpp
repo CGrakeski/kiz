@@ -8,24 +8,24 @@ dep::BigInt hash_object(Object* key_obj) {
     kiz::Vm::call_method(key_obj, "__hash__", new List({}));
 
     const auto result = kiz::Vm::fetch_one_from_stack_top();
-    assert(result != nullptr);
 
     const auto result_int = dynamic_cast<Int*>(result);
-    assert(result_int != nullptr);
+    if (!result_int)
+        throw NativeFuncError("TypeError", "Object's hash method return a value which type isn't Int");
     dep::BigInt key_hash_val = result_int->val;
     return key_hash_val;
 }
 
-// Dictionary.__add__：添加键值对 self + x（key: String，value: 任意Object），返回新Dictionary（不可变语义）
+// Dictionary.__add__
 Object* dict_add(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (dict_add)");
-    assert(args->val.size() == 2 && "function Dictionary.add need 2 args: (key: String, value: Object)");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_dict = dynamic_cast<Dictionary*>(self);
-    assert(self_dict != nullptr && "dict_add must be called by Dictionary object");
+    assert(self_dict != nullptr);
     
     auto another_dict = dynamic_cast<Dictionary*>(args->val[0]);
-    assert(another_dict != nullptr);
+    if (! another_dict)
+        throw NativeFuncError("TypeError", "Dict.add first argument must be Dict type");
 
     auto self_dict_to_vec = self_dict->val.to_vector();
     auto another_dict_to_vec = another_dict->val.to_vector();
@@ -39,29 +39,21 @@ Object* dict_add(Object* self, const List* args) {
     auto new_dict = new Dictionary(dep::Dict(
         self_dict_to_vec
     ));
+    new_dict->make_ref();
     
     return new_dict;
 };
 
 // Dictionary.contains：判断是否包含指定键（key: String），返回Bool
 Object* dict_contains(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (dict_contains)");
-    assert(args->val.size() == 1 && "function Dictionary.contains need 1 arg: (key: String)");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_dict = dynamic_cast<Dictionary*>(self);
-    assert(self_dict != nullptr && "dict_contains must be called by Dictionary object");
+    assert(self_dict != nullptr);
     
     // 键
     auto key_obj = args->val[0];
-
-    kiz::Vm::call_method(key_obj, "__hash__", new List({}));
-
-    const auto result = kiz::Vm::fetch_one_from_stack_top();
-    assert(result != nullptr);
-
-    const auto result_int = dynamic_cast<Int*>(result);
-    assert(result_int != nullptr);
-    dep::BigInt key_hash_val = result_int->val;
+    dep::BigInt key_hash_val = hash_object(key_obj);
 
     auto found_pair_it = self_dict->val.find(
         key_hash_val
@@ -74,7 +66,7 @@ Object* dict_contains(Object* self, const List* args) {
 };
 
 Object* dict_setitem(Object* self, const List* args) {
-    assert(args->val.size() == 2);
+    kiz::Vm::assert_argc(2, args);
     auto self_dict = dynamic_cast<Dictionary*>(self);
     auto key_obj = args->val[0];
     auto value_obj = args->val[1];
@@ -109,7 +101,7 @@ Object* dict_str(Object* self, const List* args) {
     std::string result = "{";
     auto kv_list = self_dict->val.to_vector();
     size_t i = 0;
-    for (auto& [_, kv_pair] : kv_list) {
+    for (auto& kv_pair : kv_list | std::views::values) {
         result += kiz::Vm::obj_to_str(kv_pair.first) + ": " + kiz::Vm::obj_to_str(kv_pair.second);
         if (i != kv_list.size() - 1) {
             result += ", ";
@@ -125,7 +117,7 @@ Object* dict_dstr(Object* self, const List* args) {
     std::string result = "{";
     auto kv_list = self_dict->val.to_vector();
     size_t i = 0;
-    for (auto& [_, kv_pair] : kv_list) {
+    for (auto& kv_pair : kv_list | std::views::values) {
         result += kiz::Vm::obj_to_debug_str(kv_pair.first) + ": " + kiz::Vm::obj_to_debug_str(kv_pair.second);
         if (i != kv_list.size() - 1) {
             result += ", ";

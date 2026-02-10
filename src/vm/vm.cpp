@@ -298,8 +298,8 @@ void Vm::assert_argc(size_t argc, const model::List* args) {
     if (argc == args->val.size()) {
         return;
     }
-    throw NativeFuncError("ArgcError", std::format(
-        "expect {} but got {}", args->val.size(), argc
+    throw NativeFuncError("ArgCountError", std::format(
+        "expect {} arguments but got {} arguments", args->val.size(), argc
     ));
 }
 
@@ -322,7 +322,7 @@ void Vm::assert_argc(const std::vector<size_t>& argcs, const model::List* args) 
     }
 
     throw NativeFuncError("ArgCountError", std::format(
-        "expect {} but got {}", argc_str, actually_count
+        "expect {} arguments but got {} arguments", argc_str, actually_count
     ));
 }
 

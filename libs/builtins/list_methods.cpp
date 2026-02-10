@@ -29,39 +29,41 @@ Object* list_call(Object* self, const List* args) {
 // List.__bool__
 Object* list_bool(Object* self, const List* args) {
     const auto self_int = dynamic_cast<List*>(self);
+    assert(self_int != nullptr);
     if (self_int->val.empty()) return load_false();
     return load_true();
 }
 
 //  List.__add__：拼接另一个List（self + 传入List，返回新List）
 Object* list_add(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_add)");
-    assert(args->val.size() == 1 && "function List.add need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_list = dynamic_cast<List*>(self);
-    assert(self_list != nullptr && "list_add must be called by List object");
+    assert(self_list != nullptr);
     
     auto another_list = dynamic_cast<List*>(args->val[0]);
-    assert(another_list != nullptr && "List.add only supports List type argument");
+    if (!another_list)
+        throw NativeFuncError("TypeError", "List.add only supports List type argument");
     
     // 浅拷贝
     std::vector<Object*> new_vals = self_list->val;
     new_vals.insert(new_vals.end(), another_list->val.begin(), another_list->val.end());
     
-    return new List(std::move(new_vals));
+    return create_list(std::move(new_vals));
 };
 
 // List.__mul__：重复自身n次 self * n
 Object* list_mul(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_mul)");
-    assert(args->val.size() == 1 && "function List.mul need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_list = dynamic_cast<List*>(self);
-    assert(self_list != nullptr && "list_mul must be called by List object");
+    assert(self_list != nullptr);
     
     auto times_int = dynamic_cast<Int*>(args->val[0]);
-    assert(times_int != nullptr && "List.mul only supports Int type argument");
-    assert(times_int->val >= dep::BigInt(0) && "List.mul requires non-negative integer argument");
+    if (! times_int)
+        throw NativeFuncError("TypeError", "List.mul only supports Int type argument");
+    if (times_int->val < dep::BigInt(0))
+        throw NativeFuncError("TypeError", "List.mul requires non-negative integer argument");
     
     std::vector<Object*> new_vals;
     dep::BigInt times = times_int->val;
@@ -69,19 +71,19 @@ Object* list_mul(Object* self, const List* args) {
         new_vals.insert(new_vals.end(), self_list->val.begin(), self_list->val.end());
     }
     
-    return new List(std::move(new_vals));
+    return create_list(std::move(new_vals));
 };
 
 // List.__eq__：判断两个List是否相等
 Object* list_eq(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_eq)");
-    assert(args->val.size() == 1 && "function List.eq need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_list = dynamic_cast<List*>(self);
-    assert(self_list != nullptr && "list_eq must be called by List object");
+    assert(self_list != nullptr);
     
     auto another_list = dynamic_cast<List*>(args->val[0]);
-    assert(another_list != nullptr && "List.eq only supports List type argument");
+    if (! another_list)
+        throw NativeFuncError("TypeError", "List.eq only supports List type argument");
     
     // 比较元素个数，不同直接返回false
     if (self_list->val.size() != another_list->val.size()) {
@@ -92,20 +94,16 @@ Object* list_eq(Object* self, const List* args) {
     for (size_t i = 0; i < self_list->val.size(); ++i) {
         Object* self_elem = self_list->val[i];
         Object* another_elem = another_list->val[i];
-
-        // 获取当前元素的 __eq__ 方法
-        const auto elem_eq_method = kiz::Vm::get_attr(self_elem, "__eq__");
-        assert(elem_eq_method != nullptr && "Element must implement __eq__ method");
-        
         // 调用 __eq__
-        kiz::Vm::call_function(
-            elem_eq_method, new List({another_elem}), self_elem
+        kiz::Vm::call_method(
+            self_elem, "__eq__", new List({another_elem})
         );
         const auto eq_result = kiz::Vm::fetch_one_from_stack_top();
 
         // 解析比较结果
         const auto eq_bool = dynamic_cast<Bool*>(eq_result);
-        assert(eq_bool != nullptr && "__eq__ method must return Bool type");
+        if (! eq_bool)
+            throw NativeFuncError("TypeError", "__eq__ method must return Bool type");
         
         // 任意元素不相等，返回 false
         if (!eq_bool->val) {
@@ -153,21 +151,18 @@ Object* list_dstr(Object* self, const List* args) {
 
 // List.contains：判断列表是否包含目标元素
 Object* list_contains(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_contains)");
-    assert(args->val.size() == 1 && "function List.contains need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_list = dynamic_cast<List*>(self);
-    assert(self_list != nullptr && "list_contains must be called by List object");
+    assert(self_list != nullptr);
     
     Object* target_elem = args->val[0];
-    assert(target_elem != nullptr && "List.contains target argument cannot be nullptr");
-    
+
     // 遍历列表元素，逐个判断是否与目标元素相等
     for (Object* elem : self_list->val) {
-        const auto elem_eq_method = kiz::Vm::get_attr(elem, "__eq__");
 
-        kiz::Vm::call_function(
-            elem_eq_method, new List({target_elem}), elem
+        kiz::Vm::call_method(
+            elem, "__eq__", new List({target_elem})
         );
         const auto result = kiz::Vm::fetch_one_from_stack_top();
 
@@ -181,15 +176,13 @@ Object* list_contains(Object* self, const List* args) {
 
 // List.append：向列表尾部添加一个元素
 Object* list_append(Object* self, const List* args) {
-    DEBUG_OUTPUT("You given " + std::to_string(args->val.size()) + " arguments (list_append)");
-    assert(args->val.size() == 1 && "function List.append need 1 arg");
+    kiz::Vm::assert_argc(1, args);
     
     auto self_list = dynamic_cast<List*>(self);
-    assert(self_list != nullptr && "list_append must be called by List object");
+    assert(self_list != nullptr);
     
     Object* elem_to_add = args->val[0];
-    assert(elem_to_add != nullptr && "List.append argument cannot be nullptr");
-    
+
     // 添加元素到列表尾部
     self_list->val.push_back(elem_to_add);
     elem_to_add->make_ref();
@@ -201,7 +194,8 @@ Object* list_append(Object* self, const List* args) {
 
 Object* list_next(Object* self, const List* args) {
     auto curr_idx_it = self->attrs.find("__current_index__");
-    assert(curr_idx_it != nullptr);
+    if(!curr_idx_it)
+        throw NativeFuncError("TypeError", "List.next cannot find attribute '__current_index__' to get current index");
 
     auto curr_idx = curr_idx_it->value;
 
@@ -210,11 +204,11 @@ Object* list_next(Object* self, const List* args) {
     auto self_list = dynamic_cast<List*>(self);
     if (index < self_list->val.size()) {
         auto res = self_list->val[index];
-        self->attrs.insert("__current_index__", create_int(index+1));
+        self->attrs_insert("__current_index__", create_int(index+1));
         return res;
     }
-    self->attrs.insert("__current_index__", create_int(0));
-    return stop_iter_signal;
+    self->attrs_insert("__current_index__", create_int(0));
+    return load_stop_iter_signal();
 }
 
 Object* list_foreach(Object* self, const List* args) {
@@ -234,17 +228,20 @@ Object* list_foreach(Object* self, const List* args) {
 Object* list_reverse(Object* self, const List* args) {
     const auto self_list = dynamic_cast<List*>(self);
     assert(self_list != nullptr);
+
     std::ranges::reverse(self_list->val);
     return load_nil();
 }
 
 Object* list_extend(Object* self, const List* args) {
-    auto other_list_obj = builtin::get_one_arg(args);
-    auto other_list = dynamic_cast<List*>(other_list_obj);
-    assert(other_list != nullptr);
-
     auto self_list = dynamic_cast<List*>(self);
     assert(self_list != nullptr);
+
+    auto other_list_obj = builtin::get_one_arg(args);
+    auto other_list = dynamic_cast<List*>(other_list_obj);
+    if (!other_list)
+        throw NativeFuncError("TypeError", "The first argument of List.extend must be List type");
+
     for (auto e: other_list->val) {
         self_list->val.push_back(e);
     }
@@ -254,6 +251,7 @@ Object* list_extend(Object* self, const List* args) {
 Object* list_pop(Object* self, const List* args) {
     auto self_list = dynamic_cast<List*>(self);
     assert(self_list != nullptr);
+
     self_list->val.pop_back();
     return load_nil();
 }
@@ -261,11 +259,12 @@ Object* list_pop(Object* self, const List* args) {
 Object* list_insert(Object* self, const List* args) {
     auto self_list = dynamic_cast<List*>(self);
     assert(self_list != nullptr);
+    kiz::Vm::assert_argc(2, args);
     if (args->val.size() == 2) {
         auto value_obj = args->val[0];
-        auto idx_obj = args->val[1];
-        auto idx_int = dynamic_cast<Int*>(idx_obj);
-        assert(idx_int != nullptr);
+        auto idx_int = dynamic_cast<Int*>(args->val[1]);
+        if (!idx_int)
+            throw NativeFuncError("TypeError", "The first argument of List.setitem must be Int type");
         auto idx = idx_int->val.to_unsigned_long_long();
         if (idx < self_list->val.size()) {
             self_list->val[idx] = value_obj;
@@ -275,10 +274,13 @@ Object* list_insert(Object* self, const List* args) {
 }
 
 Object* list_setitem(Object* self, const List* args) {
-    assert(args->val.size() == 2);
+    kiz::Vm::assert_argc(2, args);
     auto self_list = dynamic_cast<List*>(self);
+
     auto idx_obj = dynamic_cast<Int*>(args->val[0]);
-    assert(idx_obj != nullptr);
+    if (!idx_obj)
+        throw NativeFuncError("TypeError", "The first argument of List.setitem must be Int type");
+
     auto index = idx_obj->val.to_unsigned_long_long();
 
     auto value_obj = args->val[1];
@@ -293,7 +295,8 @@ Object* list_setitem(Object* self, const List* args) {
 Object* list_getitem(Object* self, const List* args) {
     auto self_list = dynamic_cast<List*>(self);
     auto idx_obj = dynamic_cast<Int*>(builtin::get_one_arg(args));
-    assert(idx_obj != nullptr);
+    if (!idx_obj)
+        throw NativeFuncError("TypeError", "The first argument of List.getitem must be Int type");
 
     auto index = idx_obj->val.to_unsigned_long_long();
     if (index < self_list->val.size()) {

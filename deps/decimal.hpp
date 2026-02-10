@@ -285,10 +285,10 @@ public:
     // 在Decimal类中添加一个新的div_round方法
     [[nodiscard]] Decimal div_round(const Decimal& other, int n=10) const {
         if (other.mantissa_ == BigInt(0)) {
-            throw std::runtime_error("Division by zero");
+            throw NativeFuncError("Calculate", "Division by zero");
         }
         if (n < 0) {
-            throw std::runtime_error("n must be non-negative");
+            throw NativeFuncError("Calculate", "n must be non-negative");
         }
 
         // 先计算到n+1位小数

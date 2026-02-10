@@ -37,7 +37,7 @@ Object* decimal_hash(Object* self, const List* args);
 Object* decimal_str(Object* self, const List* args);
 Object* decimal_limit_div(Object* self, const List* args);
 Object* decimal_round_div(Object* self, const List* args);
-Object* decimal_week_eq(Object* self, const List* args);
+Object* decimal_approx(Object* self, const List* args);
 
 // Nil 类型原生函数
 Object* nil_eq(Object* self, const List* args);

@@ -27,7 +27,7 @@ Object* bool_eq(Object* self, const List* args) {
         throw NativeFuncError("TypeError", "Bool.eq only supports Bool type argument");
     
     return load_bool(self_bool->val == another_bool->val);
-};
+}
 
 // Bool.__hash__
 Object* bool_hash(Object* self, const List* args) {

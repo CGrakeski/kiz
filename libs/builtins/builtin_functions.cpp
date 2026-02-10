@@ -329,4 +329,10 @@ model::Object* type_of_obj(model::Object* self, const model::List* args) {
     return model::create_str(type_str);
 }
 
+model::Object* debug_str(model::Object* self, const model::List* args) {
+    auto for_check = get_one_arg(args);
+    auto debug_str = kiz::Vm::obj_to_debug_str(for_check);
+    return model::create_str(debug_str);
+}
+
 }

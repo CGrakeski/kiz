@@ -34,7 +34,6 @@ namespace fs = std::filesystem;
 /**
  * @brief 跨平台获取EXE可执行文件的**完整绝对路径**（含exe文件名）
  * @return fs::path EXE的绝对路径（如Windows: C:/project/bin/Debug/app.exe，Linux: /home/user/bin/app）
- * @throw std::runtime_error 获取失败时抛出异常（如权限不足）
  */
 fs::path get_exe_abs_path() {
     fs::path exe_path;

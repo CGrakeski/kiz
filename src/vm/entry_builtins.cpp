@@ -4,10 +4,18 @@
 #include "../models/models.hpp"
 #include "builtins/include/builtin_functions.hpp"
 #include "builtins/include/builtin_methods.hpp"
+#define __RegBuiltinOneFunctions(name) \
+    builtins.insert(#name, model::create_nfunc(builtin::##name, #name));
+#define __RegBuiltinFunctions(...) __RegBuiltinOneFunctions(__VA_ARGS__)
 
 namespace kiz {
 
 void Vm::entry_builtins() {
+    // __RegBuiltinFunctions(
+    //     print, input, ischild, create, now, get_refc, breakpoint,
+    //     cmd, help, delattr, setattr, getattr, hasattr,
+    //     range, type_of, debug_str
+    // );
     builtins.insert("print", model::create_nfunc(builtin::print, "print"));
     builtins.insert("input", model::create_nfunc(builtin::input, "input"));
     builtins.insert("ischild", model::create_nfunc(builtin::ischild, "ischild"));
@@ -23,9 +31,8 @@ void Vm::entry_builtins() {
     builtins.insert("hasattr", model::create_nfunc(builtin::hasattr, "hasattr"));
     builtins.insert("range", model::create_nfunc(builtin::range, "range"));
     builtins.insert("type_of", model::create_nfunc(builtin::type_of_obj, "type_of"));
+    builtins.insert("debug_str", model::create_nfunc(builtin::debug_str, "debug_str"));
 
-
-    DEBUG_OUTPUT("registering builtin objects...");
     builtins.insert("Object", model::based_obj);
 
     model::based_bool->attrs_insert("__parent__", model::based_obj);
@@ -41,8 +48,6 @@ void Vm::entry_builtins() {
     model::based_str->attrs_insert("__parent__", model::based_obj);
     model::stop_iter_signal->attrs_insert("__parent__", model::based_obj);
     model::based_code_object->attrs_insert("__parent__", model::based_obj);
-
-    DEBUG_OUTPUT("registering magic methods...");
 
     // Object 基类 方法
     model::based_obj->attrs_insert("__eq__", model::create_nfunc([](const model::Object* self, const model::List* args) -> model::Object* {
@@ -113,7 +118,7 @@ void Vm::entry_builtins() {
     model::based_decimal->attrs_insert("__str__", model::create_nfunc(model::decimal_str));
     model::based_decimal->attrs_insert("limit_div", model::create_nfunc(model::decimal_limit_div));
     model::based_decimal->attrs_insert("round_div", model::create_nfunc(model::decimal_round_div));
-    model::based_decimal->attrs_insert("week_eq", model::create_nfunc(model::decimal_week_eq));
+    model::based_decimal->attrs_insert("approx", model::create_nfunc(model::decimal_approx));
 
     // Dictionary 类型魔法方法
     model::based_dict->attrs_insert("__add__", model::create_nfunc(model::dict_add));

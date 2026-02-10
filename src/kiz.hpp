@@ -2,7 +2,12 @@
 #include <iostream>
 #include <string>
 #include "repl/color.hpp"
+
+#ifdef __EMSCRIPTEN__
+#include "../../cmake-build-debug/include/version.hpp"
+#else
 #include "version.hpp"
+#endif
 
 // 调试模式开关
 #define IN_DEBUG
