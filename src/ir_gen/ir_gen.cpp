@@ -19,7 +19,7 @@
 namespace kiz {
 
 size_t IRGenerator::get_or_add_name(std::vector<std::string>& names, const std::string& name) {
-    auto it = std::find(names.begin(), names.end(), name);
+    auto it = std::ranges::find(names, name);
     if (it != names.end()) {
         return std::distance(names.begin(), it);
     }
@@ -45,45 +45,9 @@ model::CodeObject* IRGenerator::gen(std::unique_ptr<BlockStmt> ast_into) {
     assert(ast && ast->ast_type == AstType::BlockStmt);
     const auto* root_block = ast.get();
 
-    // 初始化模块级代码容器
-    curr_code_list.clear();
-    curr_names.clear();
-    curr_consts.clear();
-
     // 处理模块顶层节点
-    gen_block(root_block);
+    auto code_obj = gen_block(root_block);
 
-    // std::cout << "== IR Result ==" << std::endl;
-    // size_t i = 0;
-    // for (const auto& inst : curr_code_list) {
-    //     std::string opn_text;
-    //     for (auto opn : inst.opn_list) {
-    //         opn_text += std::to_string(opn) + ",";
-    //     }
-    //     std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
-    //     ++i;
-    // }
-    // std::cout << "== End ==" << std::endl;
-
-    auto code = new model::CodeObject(
-        curr_code_list,
-        curr_names
-    );
-    code->make_ref();
-    return code;
-}
-
-model::CodeObject* IRGenerator::make_code_obj() const {
-    DEBUG_OUTPUT("making code object...");
-    DEBUG_OUTPUT("make code obj : ir result");
-    // for (const auto& inst : curr_code_list) {
-    //     DEBUG_OUTPUT(opcode_to_string(inst.opc));
-    // }
-
-    const auto code_obj = new model::CodeObject(
-        curr_code_list, curr_names
-    );
-    code_obj->make_ref();
     return code_obj;
 }
 

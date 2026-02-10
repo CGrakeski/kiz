@@ -21,6 +21,7 @@
 #include "../../deps/decimal.hpp"
 #include "../../deps/dict.hpp"
 
+
 namespace model {
 
 namespace magic_name {
@@ -61,6 +62,11 @@ std::string ptr_to_string(T* m) {
 
     return ss.str();
 }
+
+struct UpValue {
+    size_t distance_from_curr; // call_stack[call_stack.size() - distance_from_curr - 1]
+    size_t idx;
+};
 
 class Object {
     std::atomic<size_t> refc_ = 0;
@@ -110,10 +116,10 @@ public:
     Object () {}
 
     virtual ~Object() {
-        // auto kv_list = attrs.to_vector();
-        // for (auto& obj : kv_list | std::views::values) {
-        //     if (obj) obj->del_ref();
-        // }
+        auto kv_list = attrs.to_vector();
+        for (auto& obj : kv_list | std::views::values) {
+            if (obj) obj->del_ref();
+        }
     }
 };
 
@@ -137,14 +143,24 @@ class List;
 class CodeObject : public Object {
 public:
     std::vector<kiz::Instruction> code;
-    std::vector<std::string> names;
+
+    std::vector<std::string> var_names;
+    std::vector<std::string> attr_names;
+    std::vector<std::string> free_names;
+
+    std::vector<UpValue> upvalues;
+    size_t local_count;
 
     static constexpr ObjectType TYPE = ObjectType::CodeObject;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
-    explicit CodeObject(const std::vector<kiz::Instruction>& code,
-        const std::vector<std::string>& names
-    ) : code(code), names(names) {}
+    explicit CodeObject(const std::vector<kiz::Instruction>& c,
+        const std::vector<std::string>& v_n,
+        const std::vector<std::string>& a_n,
+        const std::vector<std::string>& f_n,
+        const std::vector<UpValue>& u_v,
+        const size_t l_c)
+            : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), local_count(l_c) {}
 
     [[nodiscard]] std::string debug_string() const override {
         return "<CodeObject at " + ptr_to_string(this) + ">";
@@ -183,6 +199,7 @@ public:
     CodeObject* code = nullptr;
     size_t argc = 0;
     bool has_rest_params = false;
+    std::vector<Object*> free_vars;
 
     static constexpr ObjectType TYPE = ObjectType::Function;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }

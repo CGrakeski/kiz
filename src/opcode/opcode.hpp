@@ -33,7 +33,7 @@ enum class Opcode : uint8_t {
     CACHE_ITER, GET_ITER, POP_ITER, JUMP_IF_FINISH_ITER,
 
     IS_CHILD, CREATE_OBJECT, COPY_TOP,
-    STOP
+    STOP, LOAD_FREE_VAR
 };
 
 inline std::string opcode_to_string(Opcode opc) {

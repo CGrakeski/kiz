@@ -47,17 +47,17 @@ struct CallFrame {
     std::string name;
 
     model::Object* owner;
-    dep::HashMap<model::Object*> locals;
 
     size_t pc = 0;
     size_t return_to_pc;
+    size_t last_locals_base_idx;
     model::CodeObject* code_object;
     
     std::vector<TryFrame> try_blocks;
-
     std::vector<model::Object*> iters;
+    dep::HashMap<model::Object*> dyn_vars; // load slow
 
-    ~CallFrame();
+    model::Object* curr_error;
 };
 
 class Vm {
@@ -65,108 +65,67 @@ public:
     static dep::HashMap<model::Module*> modules_cache;
     static model::Module* main_module;
 
-    static std::stack<model::Object*> op_stack;
-    static std::vector<std::shared_ptr<CallFrame>> call_stack;
+    static std::vector<model::Object*> unique_op_stack;
+    static std::vector<CallFrame*> call_stack;
+    static size_t curr_locals_base_idx; // 包含头
+
     static model::Int* small_int_pool[201];
     static std::vector<model::Object*> const_pool;
 
     static dep::HashMap<model::Object*> builtins;
+    static dep::HashMap<model::Object*> std_modules;
 
     static bool running;
-    static std::string file_path;
-
-    static model::Object* curr_error;
-
-    static dep::HashMap<model::Object*> std_modules;
+    static std::string main_file_path;
 
     explicit Vm(const std::string& file_path_);
 
-    static void entry_builtins();
-    static void entry_std_modules();
-    static void handle_import(const std::string& module_path);
-
+    ///| 核心执行循环
     static void set_main_module(model::Module* src_module);
     static void exec_curr_code();
-    static void set_and_exec_curr_code(const model::CodeObject* code_object);
-
-    static void execute_instruction(const Instruction& instruction);
-    static std::string obj_to_str(model::Object* for_cast_obj);
-    static std::string obj_to_debug_str(model::Object* for_cast_obj);
-    static void assert_argc(size_t argc, const model::List* args);
-    static void assert_argc(const std::vector<size_t>& argcs, const model::List* args);
-
-    static CallFrame* fetch_curr_call_frame();
-    static model::Object* fetch_one_from_stack_top();
-    static void push_to_stack(model::Object* obj);
-
-    static model::Object* get_attr(const model::Object* obj, const std::string& attr);
-    static bool is_true(model::Object* obj);
-
-    static void instruction_throw(const std::string& name, const std::string& content);
-    static auto gen_pos_info()
-        -> std::vector<std::pair<std::string, err::PositionInfo>>;
-    static void handle_throw();
-
-    /// 如果新增了调用栈，执行循环仅处理新增的模块栈帧（call_stack.size() > old_stack_size），不影响原有调用栈
-    static void call_function(model::Object* func_obj, model::Object* args_obj, model::Object* self);
-    /// 运算符与普通方法分规则查找
-    static void call_method(model::Object* obj, const std::string& attr_name, model::List* args);
+    static void set_and_exec_curr_code(model::CodeObject* code_object);
     static void execute_unit(const Instruction& instruction);
 
-private:
-    /// 如果用户函数则创建调用栈，如果内置函数则执行并压上返回值
+    ///| 栈操作
+    static CallFrame* fetch_curr_frame();
+    static model::Object* fetch_stack_top();
+    static void push_to_stack(model::Object* obj);
+    static std::string get_attr_name_by_idx(size_t idx);
+
+    ///| 如果新增了调用栈，执行循环仅处理新增的模块栈帧（call_stack.size() > old_stack_size），不影响原有调用栈
+    static void call_function(model::Object* func_obj, std::vector<model::Object*> args, model::Object* self);
+
+    ///| 运算符与普通方法分规则查找
+    static void call_method(model::Object* obj, const std::string& attr_name, std::vector<model::Object*> args);
+
+    ///| 如果用户函数则创建调用栈，如果内置函数则执行并压上返回值
     static void handle_call(model::Object* func_obj, model::Object* args_obj, model::Object* self=nullptr);
 
-    static void exec_ADD(const Instruction& instruction);
-    static void exec_SUB(const Instruction& instruction);
-    static void exec_MUL(const Instruction& instruction);
-    static void exec_DIV(const Instruction& instruction);
-    static void exec_MOD(const Instruction& instruction);
-    static void exec_POW(const Instruction& instruction);
-    static void exec_NEG(const Instruction& instruction);
-    static void exec_EQ(const Instruction& instruction);
-    static void exec_GT(const Instruction& instruction);
-    static void exec_LT(const Instruction& instruction);
-    static void exec_GE(const Instruction& instruction);
-    static void exec_LE(const Instruction& instruction);
-    static void exec_NE(const Instruction& instruction);
-    static void exec_NOT(const Instruction& instruction);
-    static void exec_IS(const Instruction& instruction);
-    static void exec_IN(const Instruction& instruction);
+    ///| 处理import
+    static void handle_import(const std::string& module_path);
 
-    static void exec_MAKE_LIST(const Instruction& instruction);
-    static void exec_MAKE_DICT(const Instruction& instruction);
-    static void exec_CALL(const Instruction& instruction);
-    static void exec_RET(const Instruction& instruction);
-    static void exec_GET_ATTR(const Instruction& instruction);
-    static void exec_SET_ATTR(const Instruction& instruction);
-    static void exec_GET_ITEM(const Instruction& instruction);
-    static void exec_SET_ITEM(const Instruction& instruction);
-    static void exec_CALL_METHOD(const Instruction& instruction);
-    static void exec_LOAD_VAR(const Instruction& instruction);
-    static void exec_LOAD_CONST(const Instruction& instruction);
-    static void exec_SET_GLOBAL(const Instruction& instruction);
-    static void exec_SET_LOCAL(const Instruction& instruction);
-    static void exec_SET_NONLOCAL(const Instruction& instruction);
+    ///| 处理报错(设置到catch/finally pc)或者进行traceback
+    static void handle_throw();
 
-    static void exec_ENTER_TRY(const Instruction& instruction);
-    static void exec_LOAD_ERROR(const Instruction& instruction);
-    static void exec_JUMP_IF_FINISH_HANDLE_ERROR(const Instruction& instruction);
-    static void exec_MARK_HANDLE_ERROR(const Instruction& instruction);
-    static void exec_THROW(const Instruction& instruction);
-    static void exec_IMPORT(const Instruction& instruction);
+    ///| 注册内置对象
+    static void entry_builtins();
+    ///| 注册标注库
+    static void entry_std_modules();
 
-    static void exec_CACHE_ITER(const Instruction& instruction);
-    static void exec_GET_ITER(const Instruction& instruction);
-    static void exec_POP_ITER(const Instruction& instruction);
-    static void exec_JUMP_IF_FINISH_ITER(const Instruction& instruction);
+    ///| @utils
+    static model::Object* get_attr(const model::Object* obj, const std::string& attr);
+    static bool is_true(model::Object* obj);
+    static std::string obj_to_str(model::Object* for_cast_obj);
+    static std::string obj_to_debug_str(model::Object* for_cast_obj);
+    static void instruction_throw(const std::string& name, const std::string& content);
 
-    static void exec_JUMP(const Instruction& instruction);
-    static void exec_JUMP_IF_FALSE(const Instruction& instruction);
-    static void exec_IS_CHILD(const Instruction& instruction);
-    static void exec_CREATE_OBJECT(const Instruction& instruction);
-    static void exec_STOP(const Instruction& instruction);
-    static void exec_COPY_TOP(const Instruction& instruction);
+    static auto make_pos_info() -> std::vector<std::pair<std::string, err::PositionInfo>>;
+    static void make_list(size_t len);
+    static void make_dict(size_t len);
+
+    ///| @utils: 供builtins检查参数
+    static void assert_argc(size_t argc, const model::List* args);
+    static void assert_argc(const std::vector<size_t>& argcs, const model::List* args);
 };
 
 } // namespace kiz

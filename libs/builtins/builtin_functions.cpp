@@ -88,19 +88,19 @@ model::Object* breakpoint(model::Object* self, const model::List* args) {
 
         std::cout << "Locals: " << "\n";
         size_t j = 1;
-        auto locals_vector = frame->locals.to_vector();
-        for (const auto& [n, l] : locals_vector) {
-            std::cout << n << " = " << kiz::Vm::obj_to_debug_str(l);
-            if (j<locals_vector.size()) std::cout << ", ";
-            ++j;
-        }
+        // auto locals_vector = frame->locals.to_vector();
+        // for (const auto& [n, l] : locals_vector) {
+        //     std::cout << n << " = " << kiz::Vm::obj_to_debug_str(l);
+        //     if (j<locals_vector.size()) std::cout << ", ";
+        //     ++j;
+        // }
         
         std::cout << "\n";
-        std::cout << "Names: ";
+        std::cout << "VarNames: ";
         j = 1;
-        for (const auto& n: frame->code_object->names) {
+        for (const auto& n: frame->code_object->var_names) {
             std::cout << n;
-            if (j<frame->code_object->names.size()) std::cout << ", ";
+            if (j<frame->code_object->var_names.size()) std::cout << ", ";
             ++j;
         }
 

@@ -189,7 +189,7 @@ void Vm::entry_builtins() {
         auto err_name = args->val[0];
         auto err_msg = args->val[1];
 
-        auto err = new model::Error(gen_pos_info());
+        auto err = new model::Error(make_pos_info());
         err->attrs_insert("__name__", err_name);
         err->attrs_insert("__msg__", err_msg);
         return err;

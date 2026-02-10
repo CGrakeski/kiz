@@ -145,9 +145,9 @@ Object* str_foreach(Object* self, const List* args) {
 
     dep::BigInt idx = 0;
     for (const auto& e : dep::UTF8String(self_str->val)) {
-        kiz::Vm::call_function(func_obj, new List({
+        kiz::Vm::call_function(func_obj, {
             create_str(e.to_string())
-        }), nullptr);
+        }, nullptr);
         idx += 1;
     }
     return load_nil();
@@ -159,10 +159,10 @@ Object* str_count(Object* self, const List* args) {
     auto self_str = cast_to_str(self);
 
     for (const auto& c : dep::UTF8String(self_str->val)) {
-        kiz::Vm::call_method(obj, "__eq__", new List({
+        kiz::Vm::call_method(obj, "__eq__", {
             create_str(c.to_string())
-        }));
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        });
+        auto res = kiz::Vm::fetch_stack_top();
         if (res) {
             ++ count;
         }

@@ -42,16 +42,13 @@ set(SRC_FILES
 
         # VM 核心模块
         ${PROJECT_SOURCE_DIR}/src/vm/vm.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/exec_get_set.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/exec_calc.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/exec_call.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/exec_misc.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/entry_std_modules.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/entry_builtins.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/handle_error.cpp
-        ${PROJECT_SOURCE_DIR}/src/vm/exec_import.cpp
+        ${PROJECT_SOURCE_DIR}/src/vm/handle_import.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/execute_unit.cpp
         ${PROJECT_SOURCE_DIR}/src/vm/handle_call.cpp
+        ${PROJECT_SOURCE_DIR}/src/vm/handle_error.cpp
+        ${PROJECT_SOURCE_DIR}/src/vm/handle_make.cpp
 
         # 报错模块
         ${PROJECT_SOURCE_DIR}/src/error/error_reporter.cpp

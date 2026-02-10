@@ -38,17 +38,14 @@ target("kiz")
 
     -- VM 核心模块
     add_files("src/vm/vm.cpp")
-    add_files("src/vm/exec_get_set.cpp")
-    add_files("src/vm/exec_calc.cpp")
-    add_files("src/vm/exec_call.cpp")
-    add_files("src/vm/exec_misc.cpp")
     add_files("src/vm/entry_std_modules.cpp")
     add_files("src/vm/entry_builtins.cpp")
+
+    add_files("src/vm/execute_unit.cpp")
+    add_files("src/vm/handle_import.cpp")
     add_files("src/vm/handle_error.cpp")
     add_files("src/vm/handle_call.cpp")
-    add_files("src/vm/exec_import.cpp")
-    add_files("src/vm/execute_unit.cpp")
-    add_files("src/vm/execute_unit.cpp")
+    add_files("src/vm/handle_make.cpp")
 
     -- 工具模块
     add_files("src/error/error_reporter.cpp")

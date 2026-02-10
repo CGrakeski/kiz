@@ -5,9 +5,9 @@ namespace model {
 
 dep::BigInt hash_object(Object* key_obj) {
     // hash对象
-    kiz::Vm::call_method(key_obj, "__hash__", new List({}));
+    kiz::Vm::call_method(key_obj, "__hash__", {});
 
-    const auto result = kiz::Vm::fetch_one_from_stack_top();
+    const auto result = kiz::Vm::fetch_stack_top();
 
     const auto result_int = dynamic_cast<Int*>(result);
     if (!result_int)

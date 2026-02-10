@@ -15,8 +15,8 @@ Object* list_call(Object* self, const List* args) {
 
     auto for_cast = builtin::get_one_arg(args);
     while (true) {
-        kiz::Vm::call_method(for_cast, "__next__", new List({}));
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        kiz::Vm::call_method(for_cast, "__next__", {});
+        auto res = kiz::Vm::fetch_stack_top();
         if (res == stop_iter_signal) {
             break;
         }
@@ -96,9 +96,9 @@ Object* list_eq(Object* self, const List* args) {
         Object* another_elem = another_list->val[i];
         // 调用 __eq__
         kiz::Vm::call_method(
-            self_elem, "__eq__", new List({another_elem})
+            self_elem, "__eq__", {another_elem}
         );
-        const auto eq_result = kiz::Vm::fetch_one_from_stack_top();
+        const auto eq_result = kiz::Vm::fetch_stack_top();
 
         // 解析比较结果
         const auto eq_bool = dynamic_cast<Bool*>(eq_result);
@@ -162,9 +162,9 @@ Object* list_contains(Object* self, const List* args) {
     for (Object* elem : self_list->val) {
 
         kiz::Vm::call_method(
-            elem, "__eq__", new List({target_elem})
+            elem, "__eq__", {target_elem}
         );
-        const auto result = kiz::Vm::fetch_one_from_stack_top();
+        const auto result = kiz::Vm::fetch_stack_top();
 
         // 找到匹配元素，立即返回true
         if (kiz::Vm::is_true(result)) return load_true();
@@ -219,7 +219,7 @@ Object* list_foreach(Object* self, const List* args) {
 
     dep::BigInt idx = 0;
     for (auto e : self_list->val) {
-        kiz::Vm::call_function(func_obj, new List({e}), nullptr);
+        kiz::Vm::call_function(func_obj, {e}, nullptr);
         idx += 1;
     }
     return load_nil();
@@ -311,8 +311,8 @@ Object* list_count(Object* self, const List* args) {
     auto self_list = cast_to_list(self);
 
     for (const auto& item : self_list->val) {
-        kiz::Vm::call_method(obj, "__eq__", new List({item}));
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        kiz::Vm::call_method(obj, "__eq__", {item});
+        auto res = kiz::Vm::fetch_stack_top();
         if (res) {
             ++ count;
         }
@@ -327,8 +327,8 @@ Object* list_find(Object* self, const List* args) {
     assert(self_list != nullptr);
 
     for (auto e : self_list->val) {
-        kiz::Vm::call_function(func_obj, new List({e}), nullptr);
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        kiz::Vm::call_function(func_obj, {e}, nullptr);
+        auto res = kiz::Vm::fetch_stack_top();
         if (kiz::Vm::is_true(res)) {
             res->make_ref();
             return res;
@@ -346,8 +346,8 @@ Object* list_map(Object* self, const List* args) {
     std::vector<Object*> new_vec;
 
     for (auto e : self_list->val) {
-        kiz::Vm::call_function(func_obj, new List({e}), nullptr);
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        kiz::Vm::call_function(func_obj, {e}, nullptr);
+        auto res = kiz::Vm::fetch_stack_top();
         
         new_vec.push_back(res);
     }
@@ -363,8 +363,8 @@ Object* list_filter(Object* self, const List* args) {
     std::vector<Object*> new_vec;
 
     for (auto e : self_list->val) {
-        kiz::Vm::call_function(func_obj, new List({e}), nullptr);
-        auto res = kiz::Vm::fetch_one_from_stack_top();
+        kiz::Vm::call_function(func_obj, {e}, nullptr);
+        auto res = kiz::Vm::fetch_stack_top();
         if (kiz::Vm::is_true(res)) {
             new_vec.push_back(res);
         }

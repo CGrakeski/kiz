@@ -130,18 +130,12 @@ std::string get_file_name_by_path(const std::string& file_path) {
 
 namespace kiz {
 
-void Vm::exec_IMPORT(const Instruction& instruction) {
-    size_t path_idx = instruction.opn_list[0];
-    std::string module_path = call_stack.back()->code_object->names[path_idx];
-    handle_import(module_path);
-}
-
 void Vm::handle_import(const std::string& module_path) {
     std::string content;
 
     // 先向缓存中查找
     if (auto loaded_mod_it = modules_cache.find(module_path)) {
-        call_stack.back()->locals.insert(loaded_mod_it->value->path, loaded_mod_it->value);
+        call_stack.back()->dyn_vars.insert(loaded_mod_it->value->path, loaded_mod_it->value);
         return;
     }
 
@@ -194,7 +188,7 @@ void Vm::handle_import(const std::string& module_path) {
 
         // 移除重复的make_ref()，仅一次即可
         module_obj->make_ref();
-        call_stack.back()->locals.insert(module_path, module_obj);
+        call_stack.back()->dyn_vars.insert(module_path, module_obj);
 
         module_obj->make_ref();
         modules_cache.insert(module_path, module_obj);
@@ -216,29 +210,33 @@ void Vm::handle_import(const std::string& module_path) {
     auto module_obj = IRGenerator::gen_mod(module_path, ir);
 
 
-    auto new_frame = std::make_shared<CallFrame>(CallFrame{
-        module_path,
+    auto new_frame = new CallFrame{
+        .name = module_path,
 
-        module_obj,   // owner
-        dep::HashMap<model::Object*>(), // 初始空局部变量表
+        .owner = module_obj,
 
-        0,                               // 程序计数器初始化为0（从第一条指令开始执行）
-        call_stack.back()->pc + 1,   // 执行完所有指令后返回的位置（指令池末尾）
-        module_obj->code,                 // 关联当前模块的CodeObject
+        .pc = 0,
+        .return_to_pc = module_obj->code->code.size(),
+        .last_locals_base_idx = 0,
+        .code_object = module_obj->code,
 
-        {}
-    });
+        .try_blocks{},
+        .iters{},
+        .dyn_vars = dep::HashMap<model::Object*>(), // load slow
+
+        .curr_error = nullptr
+    };
 
     size_t old_call_stack_size = call_stack.size();
 
-    call_stack.emplace_back(std::move(new_frame));
+    call_stack.emplace_back(new_frame);
 
     while (running and !call_stack.empty()) {
-        auto& curr_frame = *call_stack.back();
-        auto& frame_code = curr_frame.code_object;
+        auto& curr_frame = call_stack.back();
+        auto& frame_code = curr_frame->code_object;
 
         // 检查是否执行到模块代码末尾：执行完毕则出栈
-        if (curr_frame.pc >= frame_code->code.size()) {
+        if (curr_frame->pc >= frame_code->code.size()) {
             if (old_call_stack_size == call_stack.size() - 1) {
                 break;
             }
@@ -247,9 +245,9 @@ void Vm::handle_import(const std::string& module_path) {
         }
 
         // 执行当前指令
-        const Instruction& curr_inst = frame_code->code[curr_frame.pc];
+        const Instruction& curr_inst = frame_code->code[curr_frame->pc];
         try {
-            execute_instruction(curr_inst); // 调用VM的指令执行核心方法
+            execute_unit(curr_inst); // 调用VM的指令执行核心方法
         } catch (const NativeFuncError& e) {
             // 原生函数执行错误，抛出异常
             instruction_throw(e.name, e.msg);
@@ -263,35 +261,35 @@ void Vm::handle_import(const std::string& module_path) {
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
             curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR
             && curr_inst.opc != Opcode::THROW && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER) {
-            curr_frame.pc++;
+            curr_frame->pc++;
             }
 
     }
 
     std::string module_name = get_file_name_by_path(module_path); // 默认值
-    for (const auto& [name, local_object] : call_stack.back()->locals.to_vector()) {
-        if (name.starts_with("__private__")) continue;
-        if (name == "__name__") {
-            auto module_name_str = dynamic_cast<model::String*>(local_object);
-            assert(module_name_str != nullptr);
-            module_name = module_name_str->val;
-        }
-        // 插入__owner_module__前，正确管理module_obj引用
-        module_obj->make_ref();
-        local_object->attrs.insert("__owner_module__", module_obj);
-        module_obj->del_ref(); // 移交所有权给local_object->attrs，计数平衡
-
-        // 插入到module_obj->attrs前，正确管理local_object引用
-        local_object->make_ref();
-        module_obj->attrs.insert(name, local_object);
-        local_object->del_ref(); // 移交所有权给module_obj->attrs，计数平衡
-    }
+    // for (const auto& [name, local_object] : call_stack.back()->locals.to_vector()) {
+    //     if (name.starts_with("__private__")) continue;
+    //     if (name == "__name__") {
+    //         auto module_name_str = dynamic_cast<model::String*>(local_object);
+    //         assert(module_name_str != nullptr);
+    //         module_name = module_name_str->val;
+    //     }
+    //     // 插入__owner_module__前，正确管理module_obj引用
+    //     module_obj->make_ref();
+    //     local_object->attrs.insert("__owner_module__", module_obj);
+    //     module_obj->del_ref(); // 移交所有权给local_object->attrs，计数平衡
+    //
+    //     // 插入到module_obj->attrs前，正确管理local_object引用
+    //     local_object->make_ref();
+    //     module_obj->attrs.insert(name, local_object);
+    //     local_object->del_ref(); // 移交所有权给module_obj->attrs，计数平衡
+    // }
 
     call_stack.pop_back();
 
     module_obj->path = module_path;
     module_obj->make_ref();
-    call_stack.back()->locals.insert(module_name, module_obj);
+    call_stack.back()->dyn_vars.insert(module_name, module_obj);
 
     module_obj->make_ref();
     modules_cache.insert(module_path, module_obj);

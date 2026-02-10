@@ -22,14 +22,20 @@ struct LoopInfo {
     std::vector<size_t> continue_pos;
 };
 
+
+struct CodeChunk {
+    std::vector<std::string> var_names;
+    std::vector<std::string> attr_names;
+    std::vector<std::string> free_names;
+
+    std::vector<Instruction> code_list;
+    std::vector<LoopInfo> loop_info_stack;
+    std::vector<model::UpValue> upvalues;
+};
+
 class IRGenerator {
     std::unique_ptr<BlockStmt> ast;
-    std::stack<LoopInfo> block_stack;
-
-    std::vector<std::string> curr_names;
-    std::vector<Instruction> curr_code_list;
-    std::vector<model::Object*> curr_consts;
-
+    std::vector<CodeChunk> code_chunks;
     const std::string& file_path;
 public:
     explicit IRGenerator(const std::string& file_path) : file_path(file_path) {}
@@ -42,7 +48,7 @@ public:
     );
     void gen_for(ForStmt* for_stmt);
     void gen_try(TryStmt* try_stmt);
-    void gen_block(const BlockStmt* block);
+    model::CodeObject* gen_block(const BlockStmt* block);
 
     void gen_fn_call(CallExpr* expr);
     void gen_dict(DictExpr* expr);
@@ -52,7 +58,6 @@ public:
     void gen_while(WhileStmt* while_stmt);
 
 protected:
-    [[nodiscard]] model::CodeObject* make_code_obj() const;
     static model::Int* make_int_obj(const NumberExpr* num_expr);
     static model::Decimal* make_decimal_obj(const DecimalExpr* dec_expr);
     static model::String* make_string_obj(const StringExpr* str_expr);

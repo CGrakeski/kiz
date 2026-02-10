@@ -178,7 +178,7 @@ void Repl::eval_and_print(const std::string& cmd, const size_t startline) {
     }
 
     DEBUG_OUTPUT("repl print");
-    auto stack_top = vm_.fetch_one_from_stack_top();
+    auto stack_top = vm_.fetch_stack_top();
     if (stack_top != nullptr) {
         if (not dynamic_cast<model::Nil*>(stack_top) and should_print) {
             std::cout << vm_.obj_to_debug_str(stack_top) << std::endl;

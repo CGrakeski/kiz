@@ -6,112 +6,28 @@
 namespace kiz {
 
 // -------------------------- 异常处理 --------------------------
-// 辅助函数
-auto Vm::gen_pos_info() -> std::vector<std::pair<std::string, err::PositionInfo>> {
-    size_t frame_index = 0;
-    std::vector<std::pair<std::string, err::PositionInfo>> positions;
-    std::string path;
-    for (const auto& frame: call_stack) {
-        if (const auto m = dynamic_cast<model::Module*>(frame->owner)) {
-            path = m->path;
-        }
-        err::PositionInfo pos{};
-        bool cond = frame_index == call_stack.size() - 1;
-        DEBUG_OUTPUT("frame_index: " << frame_index << ", call_stack.size(): " << call_stack.size());
-        if (cond) {
-            pos = frame->code_object->code.at(frame->pc).pos;
-        } else {
-            pos = frame->code_object->code.at(frame->pc - 1).pos;
-        }
-        DEBUG_OUTPUT(
-            "Vm::gen_pos_info, pos = col "
-            << pos.col_start << ", " << pos.col_end << " | line "
-            << pos.lno_start << ", " << pos.lno_end
-        );
-        positions.emplace_back(path, pos);
-        ++frame_index;
-    }
-    return positions;
-}
 
 void Vm::instruction_throw(const std::string& name, const std::string& content) {
     // 创建即计数
     const auto err_name = model::create_str(name);
     const auto err_msg = model::create_str(content);
-    const auto err_obj = new model::Error(gen_pos_info());
+    const auto err_obj = new model::Error(make_pos_info());
     err_obj->make_ref();
 
     err_obj->attrs.insert("__name__", err_name);
     err_obj->attrs.insert("__msg__", err_msg);
 
     // 替换全局curr_error前，释放旧错误对象
-    if (curr_error) {
-        // ==| IMPORTANT |==
-        curr_error->del_ref();
+    if (call_stack.back()->curr_error) {
+        call_stack.back()->curr_error->del_ref();
     }
-    curr_error = err_obj; // 全局持有，已提前make_ref()
+    err_obj->make_ref();
+    call_stack.back()->curr_error = err_obj; // 全局持有
     handle_throw();
-}
-
-void Vm::exec_ENTER_TRY(const Instruction& instruction) {
-    assert(!call_stack.empty() && "exec_ENTER_TRY: 调用栈为空，无法执行ENTER_TRY指令");
-    size_t catch_start = instruction.opn_list[0];
-    size_t finally_start = instruction.opn_list[1];
-    call_stack.back()->try_blocks.emplace_back(false, catch_start, finally_start);
-}
-
-
-void Vm::exec_LOAD_ERROR(const Instruction& instruction) {
-    assert(curr_error != nullptr);
-    push_to_stack(curr_error);
-}
-
-void Vm::exec_THROW(const Instruction& instruction) {
-    DEBUG_OUTPUT("exec throw...");
-    const auto top = fetch_one_from_stack_top();
-    top->make_ref();
-
-    // 替换前释放旧错误对象
-    if (curr_error) {
-        // ==| IMPORTANT |==
-        curr_error->del_ref();
-    }
-    curr_error = top;
-    handle_throw();
-}
-
-void Vm::exec_JUMP_IF_FINISH_HANDLE_ERROR(const Instruction& instruction) {
-    assert(!call_stack.empty());
-    assert(!call_stack.back()->try_blocks.empty());
-    bool finish_handle_error = call_stack.back()->try_blocks.back().handle_error;
-    // 弹出TryFrame
-    call_stack.back()->try_blocks.pop_back();
-    // std::cout << "Jump if finish handle error: finish_handle_error = " << finish_handle_error << std::endl;
-    if (finish_handle_error) {
-        call_stack.back()->pc = instruction.opn_list[0];
-    } else {
-        call_stack.back()->pc ++;
-    }
-}
-
-void Vm::exec_MARK_HANDLE_ERROR(const Instruction& instruction) {
-    assert(!call_stack.empty());
-    assert(!call_stack.back()->try_blocks.empty());
-    call_stack.back()->try_blocks.back().handle_error = true;
-}
-
-
-void Vm::exec_IS_CHILD(const Instruction& instruction) {
-    auto b = fetch_one_from_stack_top();
-    auto a = fetch_one_from_stack_top();
-    push_to_stack(builtin::check_based_object(a, b));
-    // 释放使用后的a/b对象，计数对称
-    a->del_ref();
-    b->del_ref();
 }
 
 void Vm::handle_throw() {
-    assert(curr_error != nullptr);
+    assert(call_stack.back()->curr_error != nullptr);
 
     size_t frames_to_pop = 0;
     CallFrame* target_frame = nullptr;
@@ -119,7 +35,7 @@ void Vm::handle_throw() {
 
     // 逆序遍历调用栈，寻找最近的 try 块
     for (auto frame_it = call_stack.rbegin(); frame_it != call_stack.rend(); ++frame_it) {
-        CallFrame* frame = (*frame_it).get();
+        CallFrame* frame = *frame_it;
         if (!frame->try_blocks.empty()) {
             target_frame = frame;
             auto try_frame = frame->try_blocks.back();
@@ -136,7 +52,6 @@ void Vm::handle_throw() {
             } else {
                 target_pc = try_frame.catch_start;
                 assert(target_pc != 0);
-                // std::cout << "find catch pc!" << target_pc << std::endl;
                 break;
             }
         }
@@ -154,18 +69,18 @@ void Vm::handle_throw() {
         return;
     }
 
-    auto err_name_it = curr_error->attrs.find("__name__");
-    auto err_msg_it = curr_error->attrs.find("__msg__");
+    auto err_name_it = call_stack.back()->curr_error->attrs.find("__name__");
+    auto err_msg_it = call_stack.back()->curr_error->attrs.find("__msg__");
     if (!err_name_it or !err_msg_it) {
         throw NativeFuncError("NameError",
-        "Undefined attribute '__name__' '__msg__'  of " + curr_error->debug_string() + " (when try to throw it)"
+        "Undefined attribute '__name__' '__msg__'  of " + obj_to_debug_str(call_stack.back()->curr_error) + " (when try to throw it)"
         );
     }
     auto error_name = obj_to_str(err_name_it->value);
     auto error_msg = obj_to_str(err_msg_it->value);
 
     // 报错
-    if (auto err_obj = dynamic_cast<model::Error*>(curr_error)) {
+    if (auto err_obj = dynamic_cast<model::Error*>(call_stack.back()->curr_error)) {
         std::cout << Color::BRIGHT_RED << "\nTrace Back: " << Color::RESET << std::endl;
         for (auto& [_path, _pos]: err_obj->positions ) {
             err::context_printer(_path, _pos);
@@ -178,8 +93,8 @@ void Vm::handle_throw() {
               << Color::RESET << std::endl;
     std::cout << std::endl;
 
-    curr_error->del_ref();
-    curr_error = nullptr;
+    call_stack.back()->curr_error->del_ref();
+    call_stack.back()->curr_error = nullptr;
 
     throw KizStopRunningSignal();
 }
