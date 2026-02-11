@@ -163,13 +163,13 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         skip_token("end");
 
         // 生成函数定义语句节点
-        return std::make_unique<AssignStmt>(tok.pos,  func_name, std::make_unique<FnDeclExpr>(
+        return std::make_unique<NamedFuncDeclStmt>(
             tok.pos,
             func_name,
             std::move(func_params),
             std::move(func_body),
             has_rest_params
-        ));
+        );
     }
 
 

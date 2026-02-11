@@ -51,6 +51,7 @@ struct CallFrame {
     size_t pc = 0;
     size_t return_to_pc;
     size_t last_locals_base_idx;
+    size_t bp;
     model::CodeObject* code_object;
     
     std::vector<TryFrame> try_blocks;
@@ -65,14 +66,15 @@ public:
     static dep::HashMap<model::Module*> modules_cache;
     static model::Module* main_module;
 
-    static std::vector<model::Object*> unique_op_stack;
+    static std::vector<model::Object*> op_stack;
     static std::vector<CallFrame*> call_stack;
-    static size_t curr_locals_base_idx; // 包含头
+    static size_t bp; // 包含头
 
     static model::Int* small_int_pool[201];
     static std::vector<model::Object*> const_pool;
 
-    static dep::HashMap<model::Object*> builtins;
+    static std::vector<model::Object*> builtins;
+    static std::vector<std::string> builtin_names;
     static dep::HashMap<model::Object*> std_modules;
 
     static bool running;

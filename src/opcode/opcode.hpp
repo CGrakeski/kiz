@@ -18,7 +18,7 @@ enum class Opcode : uint8_t {
     OP_NOT,
     OP_IS, OP_IN,
 
-    CALL, RET,
+    CALL, RET, CREATE_CLOSURE,
     GET_ATTR, SET_ATTR, CALL_METHOD,
     GET_ITEM, SET_ITEM,
 
@@ -33,7 +33,7 @@ enum class Opcode : uint8_t {
     CACHE_ITER, GET_ITER, POP_ITER, JUMP_IF_FINISH_ITER,
 
     IS_CHILD, CREATE_OBJECT, COPY_TOP,
-    STOP, LOAD_FREE_VAR
+    STOP, LOAD_FREE_VAR, LOAD_BUILTINS
 };
 
 inline std::string opcode_to_string(Opcode opc) {
@@ -76,6 +76,9 @@ inline std::string opcode_to_string(Opcode opc) {
     case Opcode::SET_GLOBAL:  return "SET_GLOBAL";
     case Opcode::SET_LOCAL:   return "SET_LOCAL";
     case Opcode::SET_NONLOCAL:return "SET_NONLOCAL";
+    case Opcode::LOAD_BUILTINS: return "LOAD_BUILTINS";
+    case Opcode::LOAD_FREE_VAR: return "LOAD_FREE_VAR";
+    case Opcode::CREATE_CLOSURE: return "CREATE_CLOSURE";
 
     // 流程控制
     case Opcode::JUMP:        return "JUMP";

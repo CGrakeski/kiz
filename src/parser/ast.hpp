@@ -22,7 +22,7 @@ enum class AstType {
     BinaryExpr, UnaryExpr,
     CallExpr,
     GetMemberExpr, GetItemExpr,
-    FuncDeclExpr, DictExpr,
+    LambdaExpr, DictExpr,
 
     // 语句类型（对应 Stmt 子类）
     AssignStmt, NonlocalAssignStmt, GlobalAssignStmt,
@@ -30,7 +30,7 @@ enum class AstType {
     BlockStmt, IfStmt, WhileStmt,
     ReturnStmt, ImportStmt, ForStmt, TryStmt, CatchStmt,
     NullStmt, ExprStmt,
-    BreakStmt, NextStmt, ThrowStmt, ObjectStmt
+    BreakStmt, NextStmt, ThrowStmt, ObjectStmt, NamedFuncDeclStmt
 };
 
 // AST 基类
@@ -323,15 +323,27 @@ struct GetItemExpr final :  Expr {
 };
 
 // 声明匿名函数
-struct FnDeclExpr final :  Expr {
+struct LambdaExpr final :  Expr {
     std::string name;
     std::vector<std::string> params;
     std::unique_ptr<BlockStmt> body;
     bool has_rest_params = false;
-    FnDeclExpr(const err::PositionInfo& pos, std::string n, std::vector<std::string> p, std::unique_ptr<BlockStmt> b, bool has_rest_params)
+    LambdaExpr(const err::PositionInfo& pos, std::string n, std::vector<std::string> p, std::unique_ptr<BlockStmt> b, bool has_rest_params)
         : name(std::move(n)), params(std::move(p)), body(std::move(b)), has_rest_params(has_rest_params) {
         this->pos = pos;
-        this->ast_type = AstType::FuncDeclExpr;
+        this->ast_type = AstType::LambdaExpr;
+    }
+};
+
+struct NamedFuncDeclStmt final :  Stmt {
+    std::string name;
+    std::vector<std::string> params;
+    std::unique_ptr<BlockStmt> body;
+    bool has_rest_params = false;
+    NamedFuncDeclStmt(const err::PositionInfo& pos, std::string n, std::vector<std::string> p, std::unique_ptr<BlockStmt> b, bool has_rest_params)
+        : name(std::move(n)), params(std::move(p)), body(std::move(b)), has_rest_params(has_rest_params) {
+        this->pos = pos;
+        this->ast_type = AstType::NamedFuncDeclStmt;
     }
 };
 

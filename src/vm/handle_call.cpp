@@ -83,15 +83,15 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
             ));
 
         // 创建新调用帧
-
         auto new_frame = new CallFrame{
-             .name = func->name,
+            .name = func->name,
 
             .owner = func,
 
             .pc = 0,
             .return_to_pc = call_stack.back()->pc + 1,
-            .last_locals_base_idx = curr_locals_base_idx,
+            .last_locals_base_idx = bp,
+            .bp = op_stack.size(),
             .code_object = func->code,
 
             .try_blocks{},
@@ -100,7 +100,18 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
             .curr_error = nullptr,
         };
-        curr_locals_base_idx = unique_op_stack.size();
+        auto old_frame = call_stack.back();
+        std::vector<model::Object*> temp_stack; // 临时栈部分
+        while (bp + old_frame->code_object->var_names.size() < op_stack.size()) {
+            temp_stack.push_back(op_stack.back());
+            op_stack.pop_back();
+        }
+        bp = op_stack.size();
+        new_frame->bp = bp;
+        op_stack.resize(op_stack.size() + func->code->var_names.size() + temp_stack.size());
+        for (auto temp: temp_stack ) {
+            push_to_stack(temp);
+        }
 
         // 储存self
         if (self and self->get_type() != model::Object::ObjectType::Module) {
@@ -122,30 +133,24 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
                 assert(param_val != nullptr && ("CALL: 参数" + std::to_string(i) + "为nil（不允许空参数）").c_str());
 
-                unique_op_stack[curr_locals_base_idx + i] = param_val;
+                op_stack[bp + i] = param_val;
             }
 
             call_stack.emplace_back(std::move(new_frame));
             return;
         }
 
-        // 从参数列表中提取参数，存入调用帧 locals
+        // 从参数列表中提取参数，存入locals
         for (size_t i = 0; i < required_argc; ++i) {
-            if (i >= new_frame->code_object->var_names.size()) {
-                assert(false && "CALL: 参数名索引超出范围");
-            }
-
             std::string param_name = new_frame->code_object->var_names[i];
             model::Object* param_val = args_list->val[i];  // 从列表取参数
 
             // 校验参数非空
-            if (param_val == nullptr) {
-                assert(false && ("CALL: 参数" + std::to_string(i) + "为nil（不允许空参数）").c_str());
-            }
+            assert(param_val != nullptr);
 
             // 增加参数引用计数（存入locals需持有引用）
             param_val->make_ref();
-            unique_op_stack[curr_locals_base_idx + i] = param_val;
+            op_stack[bp + i] = param_val;
         }
 
         // 压入新调用帧，更新程序计数器

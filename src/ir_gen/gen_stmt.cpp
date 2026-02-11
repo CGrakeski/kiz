@@ -22,13 +22,10 @@ model::Module* IRGenerator::gen_mod(
     return module_obj;
 }
 
-
-// 处理代码块（生成块内所有语句的IR）
-model::CodeObject* IRGenerator::gen_block(const BlockStmt* block) {
-    assert(block);
-    code_chunks.emplace_back(CodeChunk());
+void IRGenerator::gen_block(const BlockStmt* block) {
     for (auto& stmt : block->statements) {
         switch (stmt->ast_type) {
+        assert(!code_chunks.empty());
         case AstType::ImportStmt: {
             const auto* import_stmt = dynamic_cast<ImportStmt*>(stmt.get());
             const size_t name_idx = get_or_add_name(code_chunks.back().attr_names, import_stmt->path);
@@ -206,6 +203,100 @@ model::CodeObject* IRGenerator::gen_block(const BlockStmt* block) {
             );
             break;
         }
+        case AstType::NamedFuncDeclStmt: {
+            auto* func = dynamic_cast<NamedFuncDeclStmt*>(stmt.get());
+
+            // 创建函数体
+            code_chunks.back().var_names.push_back(func->name);
+            code_chunks.emplace_back(CodeChunk());
+            // 添加参数到变量表
+            for (const auto& param : func->params) {
+                get_or_add_name(code_chunks.back().var_names, param);
+            }
+            // 生成函数体
+            gen_block(func->body.get());
+
+            // 确保有返回值（无显式返回则返回Nil）
+            if (code_chunks.back().code_list.empty() || code_chunks.back().code_list.back().opc != Opcode::RET) {
+                const auto nil = model::load_nil();
+                const size_t nil_idx = get_or_add_const(nil);
+                code_chunks.back().code_list.emplace_back(
+                    Opcode::LOAD_CONST,
+                    std::vector{nil_idx},
+                    stmt->pos
+                );
+                code_chunks.back().code_list.emplace_back(
+                    Opcode::RET,
+                    std::vector<size_t>{},
+                    stmt->pos
+                );
+            }
+
+            std::cout << "== IR Result ==" << std::endl;
+            size_t i = 0;
+            for (const auto& inst : code_chunks.back().code_list) {
+                std::string opn_text;
+                for (auto opn : inst.opn_list) {
+                    opn_text += std::to_string(opn) + ",";
+                }
+                std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
+                ++i;
+            }
+            std::cout << "== End ==" << std::endl;
+            std::cout << "== VarName Result ==" << std::endl;
+            for (auto n: code_chunks.back().var_names) {
+                std::cout << n << "\n";
+            }
+            std::cout << "== End ==" << std::endl;
+
+            auto code_obj = new model::CodeObject(
+                code_chunks.back().code_list,
+                code_chunks.back().var_names,
+                code_chunks.back().attr_names,
+                code_chunks.back().free_names,
+                code_chunks.back().upvalues,
+                code_chunks.back().var_names.size()
+            );
+            code_chunks.pop_back();
+
+            // 生成函数体IR
+            const auto lambda_fn = new model::Function(
+                func->name,
+                code_obj,
+                func->params.size()
+            );
+            lambda_fn->has_rest_params = func->has_rest_params;
+
+
+            // 加载函数对象
+            const size_t fn_const_idx = get_or_add_const(lambda_fn);
+            code_chunks.back().code_list.emplace_back(
+                Opcode::LOAD_CONST,
+                std::vector{fn_const_idx},
+                stmt->pos
+            );
+
+            const size_t name_idx = get_or_add_name(code_chunks.back().var_names, func->name);
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::SET_LOCAL,
+                std::vector{name_idx},
+                stmt->pos
+            );
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::LOAD_VAR,
+                std::vector{name_idx},
+                stmt->pos
+            );
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::CREATE_CLOSURE,
+                std::vector<size_t>{},
+                stmt->pos
+            );
+            break;
+        }
         case AstType::NextStmt: {
             assert(!code_chunks.back().loop_info_stack.empty());
             code_chunks.back().loop_info_stack.back().continue_pos.push_back(code_chunks.back().code_list.size());
@@ -251,35 +342,6 @@ model::CodeObject* IRGenerator::gen_block(const BlockStmt* block) {
             assert(false && "gen_block: 未处理的语句类型");
         }
     }
-
-    std::cout << "== IR Result ==" << std::endl;
-    size_t i = 0;
-    for (const auto& inst : code_chunks.back().code_list) {
-        std::string opn_text;
-        for (auto opn : inst.opn_list) {
-            opn_text += std::to_string(opn) + ",";
-        }
-        std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
-        ++i;
-    }
-    std::cout << "== End ==" << std::endl;
-    std::cout << "== VarName Result ==" << std::endl;
-    for (auto n: code_chunks.back().var_names) {
-        std::cout << n << "\n";
-    }
-    std::cout << "== End ==" << std::endl;
-
-    auto code_obj = new model::CodeObject(
-        code_chunks.back().code_list,
-        code_chunks.back().var_names,
-        code_chunks.back().attr_names,
-        code_chunks.back().free_names,
-        code_chunks.back().upvalues,
-        code_chunks.back().var_names.size()
-    );
-    code_chunks.pop_back();
-    code_obj->make_ref();
-    return code_obj;
 }
 
 void IRGenerator::gen_if(IfStmt* if_stmt) {
@@ -335,7 +397,7 @@ void IRGenerator::gen_while(WhileStmt* while_stmt) {
     );
 
     auto loop_info = LoopInfo{{}, {}};
-    code_chunks.back().loop_info_stack.emplace_back(loop_info);
+    code_chunks.back().loop_info_stack.push_back(loop_info);
 
     // 生成循环体IR
     gen_block(while_stmt->body.get());

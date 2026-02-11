@@ -56,24 +56,35 @@ void IRGenerator::gen_expr(Expr* expr) {
             size_t i = 0;
             size_t name_idx = 0;
             bool find_free_var_it = false;
-            for (auto code_chuck : code_chunks | std::views::reverse) {
-                if (std::ranges::find(code_chuck.var_names, ident->name) != code_chuck.var_names.end()) {
-                    name_idx = std::distance(code_chuck.var_names.begin(), name_idx_it);
+            for (auto& code_chuck : code_chunks | std::views::reverse) {
+                auto free_it = std::ranges::find(code_chuck.var_names, ident->name);
+                if (free_it != code_chuck.var_names.end()) {
+                    name_idx = std::distance(code_chuck.var_names.begin(), free_it);
                     find_free_var_it = true;
                     break;
                 }
                 ++i;
             }
             if (!find_free_var_it) {
-                assert(false);
+                auto builtin_it = std::ranges::find(Vm::builtin_names, ident->name);
+                if (builtin_it != Vm::builtin_names.end()) {
+                    code_chunks.back().code_list.emplace_back(
+                        Opcode::LOAD_BUILTINS,
+                        std::vector{static_cast<size_t>(builtin_it - Vm::builtin_names.begin())},
+                        expr->pos
+                    );
+                    break;
+                }
+                err::error_reporter(file_path, expr->pos, "NameError", "Undefined var '"+ident->name+"'");
+            } else {
+                code_chunks.back().free_names.push_back(ident->name);
+                code_chunks.back().upvalues.push_back({i, name_idx});
+                code_chunks.back().code_list.emplace_back(
+                    Opcode::LOAD_FREE_VAR,
+                    std::vector{code_chunks.back().upvalues.size() - 1},
+                    expr->pos
+                );
             }
-            code_chunks.back().free_names.push_back(ident->name);
-            code_chunks.back().upvalues.push_back({i, name_idx});
-            code_chunks.back().code_list.emplace_back(
-                Opcode::LOAD_FREE_VAR,
-                std::vector{name_idx},
-                expr->pos
-            );
         }
         break;
     }
@@ -210,16 +221,18 @@ void IRGenerator::gen_expr(Expr* expr) {
         );
         break;
     }
-    case AstType::FuncDeclExpr: {
+    case AstType::LambdaExpr: {
         // 匿名函数：同普通函数声明，生成函数对象后加载
-        auto* lambda = dynamic_cast<FnDeclExpr*>(expr);
+        auto* lambda = dynamic_cast<LambdaExpr*>(expr);
 
+        // 创建函数体
+        code_chunks.emplace_back(CodeChunk());
         // 添加参数到lambda变量表
         for (const auto& param : lambda->params) {
             get_or_add_name(code_chunks.back().var_names, param);
         }
         // 生成lambda函数体
-        const auto code_obj = gen_block(lambda->body.get());
+        gen_block(lambda->body.get());
 
         // 确保lambda有返回值（无显式返回则返回Nil）
         if (code_chunks.back().code_list.empty() || code_chunks.back().code_list.back().opc != Opcode::RET) {
@@ -237,6 +250,32 @@ void IRGenerator::gen_expr(Expr* expr) {
             );
         }
 
+        std::cout << "== IR Result ==" << std::endl;
+        size_t i = 0;
+        for (const auto& inst : code_chunks.back().code_list) {
+            std::string opn_text;
+            for (auto opn : inst.opn_list) {
+                opn_text += std::to_string(opn) + ",";
+            }
+            std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
+            ++i;
+        }
+        std::cout << "== End ==" << std::endl;
+        std::cout << "== VarName Result ==" << std::endl;
+        for (auto n: code_chunks.back().var_names) {
+            std::cout << n << "\n";
+        }
+        std::cout << "== End ==" << std::endl;
+
+        auto code_obj = new model::CodeObject(
+            code_chunks.back().code_list,
+            code_chunks.back().var_names,
+            code_chunks.back().attr_names,
+            code_chunks.back().free_names,
+            code_chunks.back().upvalues,
+            code_chunks.back().var_names.size()
+        );
+        code_chunks.pop_back();
 
         // 生成lambda函数体IR
         const auto lambda_fn = new model::Function(
@@ -252,6 +291,11 @@ void IRGenerator::gen_expr(Expr* expr) {
         code_chunks.back().code_list.emplace_back(
             Opcode::LOAD_CONST,
             std::vector{fn_const_idx},
+            expr->pos
+        );
+        code_chunks.back().code_list.emplace_back(
+            Opcode::CREATE_CLOSURE,
+            std::vector<size_t>{},
             expr->pos
         );
         break;
@@ -310,7 +354,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
         // 生成 CALL_METHOD 指令：操作数为 方法名索引 + 参数个数（用于校验）
         code_chunks.back().code_list.emplace_back(
             Opcode::CALL_METHOD,
-            std::vector<size_t>{method_name_idx, arg_count},
+            std::vector{method_name_idx, arg_count},
             call_expr->pos
         );
     } else {
@@ -318,7 +362,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
         gen_expr(call_expr->callee.get());
         code_chunks.back().code_list.emplace_back(
             Opcode::CALL,
-            std::vector<size_t>{arg_count},
+            std::vector{arg_count},
             call_expr->pos
         );
     }

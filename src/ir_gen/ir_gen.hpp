@@ -48,7 +48,7 @@ public:
     );
     void gen_for(ForStmt* for_stmt);
     void gen_try(TryStmt* try_stmt);
-    model::CodeObject* gen_block(const BlockStmt* block);
+    void gen_block(const BlockStmt* block);
 
     void gen_fn_call(CallExpr* expr);
     void gen_dict(DictExpr* expr);

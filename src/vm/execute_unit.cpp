@@ -225,6 +225,25 @@ void Vm::execute_unit(const Instruction& instruction) {
         break;
     }
 
+    case Opcode::CREATE_CLOSURE: {
+        model::Function* func_obj = dynamic_cast<model::Function*>(fetch_stack_top());
+
+        auto& upvalues = func_obj->code->upvalues;
+        std::vector<model::Object*> free_vars {};
+
+        for (const auto& [distance_from_curr, idx] : upvalues) {
+            auto frame = call_stack[ call_stack.size() - distance_from_curr];
+            size_t loc_based = frame->bp;
+
+            auto var = op_stack[loc_based + idx];
+            var->make_ref();
+            free_vars.push_back( var );
+        }
+
+        func_obj->free_vars = free_vars;
+        break;
+    }
+
 
     case Opcode::CALL: {
         model::Object* func_obj = fetch_stack_top();
@@ -239,9 +258,13 @@ void Vm::execute_unit(const Instruction& instruction) {
 
     case Opcode::RET: {
         auto frame = call_stack.back();
-        curr_locals_base_idx = frame->last_locals_base_idx;
-        delete frame;
+        bp = frame->last_locals_base_idx;
         call_stack.pop_back();
+
+        auto callee_frame = call_stack.back();
+        callee_frame->pc = frame->return_to_pc;
+
+        delete frame;
         break;
     }
 
@@ -320,7 +343,7 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::LOAD_VAR: {
-        auto val = unique_op_stack[curr_locals_base_idx + instruction.opn_list[0]];
+        auto val = op_stack[bp + instruction.opn_list[0]];
         val->make_ref();
         push_to_stack(val);
         break;
@@ -333,6 +356,18 @@ void Vm::execute_unit(const Instruction& instruction) {
         break;
     }
 
+    case Opcode::LOAD_BUILTINS: {
+        auto obj = builtins[ instruction.opn_list[0] ];
+        push_to_stack(obj);
+        break;
+    }
+
+    case Opcode::LOAD_FREE_VAR: {
+        auto func = dynamic_cast<model::Function*>(call_stack.back()->owner);
+        assert(func != nullptr);
+        push_to_stack(func->free_vars[ instruction.opn_list[0] ]);
+    }
+
     case Opcode::SET_GLOBAL: {
         break;
     }
@@ -341,7 +376,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         model::Object* var_val = fetch_stack_top();
         auto new_val = model::copy_or_ref(var_val);
 
-        unique_op_stack[curr_locals_base_idx + instruction.opn_list[0]] = new_val;
+        op_stack[bp + instruction.opn_list[0]] = new_val;
         var_val->del_ref();
         break;
     }
@@ -436,7 +471,7 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::CACHE_ITER: {
-        auto iter = unique_op_stack.back();
+        auto iter = op_stack.back();
         iter->make_ref();
 
         call_stack.back()->iters.push_back(iter);

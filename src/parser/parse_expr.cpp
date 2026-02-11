@@ -294,7 +294,7 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         skip_start_of_block();  // 跳过参数后的换行
         auto func_body = parse_block();
         skip_token("end");
-        return std::make_unique<FnDeclExpr>(curr_token().pos,
+        return std::make_unique<LambdaExpr>(curr_token().pos,
             "<lambda>",
             std::move(func_params),
             std::move(func_body),
@@ -312,7 +312,7 @@ std::unique_ptr<Expr> Parser::parse_primary() {
         std::vector<std::unique_ptr<Stmt>> stmts;
         stmts.emplace_back(std::make_unique<ReturnStmt>(curr_token().pos, std::move(expr)));
 
-        return std::make_unique<FnDeclExpr>(
+        return std::make_unique<LambdaExpr>(
             curr_token().pos,
             "lambda",
             std::move(params),

@@ -30,9 +30,9 @@ void Vm::make_list(size_t len) {
     size_t elem_count = len;
 
     // 校验：栈中元素个数 ≥ 要打包的个数
-    if (unique_op_stack.size() < elem_count) {
+    if (op_stack.size() < elem_count) {
         assert(false && ("MAKE_LIST: 栈元素不足（需" + std::to_string(elem_count) +
-                        "个，实际" + std::to_string(unique_op_stack.size()) + "个）").c_str());
+                        "个，实际" + std::to_string(op_stack.size()) + "个）").c_str());
     }
 
     // 弹出栈顶 elem_count 个元素（栈是LIFO，弹出顺序是 argN → arg2 → arg1）
@@ -68,7 +68,7 @@ void Vm::make_dict(size_t len) {
     const size_t total_elems = elem_count * 2;
 
     // 校验：栈中元素个数 ≥ 要打包的个数
-    if (unique_op_stack.size() < total_elems) {
+    if (op_stack.size() < total_elems) {
         assert(false && "Stack underflow in MAKE_DICT: insufficient elements");
     }
 

@@ -22,17 +22,18 @@
 
 namespace kiz {
 
-dep::HashMap<model::Object*> Vm::builtins{};
-dep::HashMap<model::Module*> Vm::modules_cache{};
+std::vector<model::Object*> Vm::builtins {};
+std::vector<std::string> Vm::builtin_names {};
+dep::HashMap<model::Module*> Vm::modules_cache {};
 model::Module* Vm::main_module;
-std::vector<model::Object*> Vm::unique_op_stack{};
-std::vector<CallFrame*> Vm::call_stack{};
+std::vector<model::Object*> Vm::op_stack {};
+std::vector<CallFrame*> Vm::call_stack {};
 model::Int* Vm::small_int_pool[201] {};
 bool Vm::running = false;
 std::string Vm::main_file_path;
-std::vector<model::Object*> Vm::const_pool{};
+std::vector<model::Object*> Vm::const_pool {};
 dep::HashMap<model::Object*> Vm::std_modules {};
-size_t Vm::curr_locals_base_idx = 0;
+size_t Vm::bp = 0;
 
 
 Vm::Vm(const std::string& file_path_) {
@@ -74,7 +75,7 @@ void Vm::set_main_module(model::Module* src_module) {
     src_module->make_ref();
 
     // 创建模块级调用帧（CallFrame）：模块是顶层执行单元，对应一个顶层调用帧
-    unique_op_stack.resize(src_module->code->local_count);
+    op_stack.resize(src_module->code->local_count);
     auto module_call_frame = new CallFrame{
         .name = src_module->path,
 
@@ -83,6 +84,7 @@ void Vm::set_main_module(model::Module* src_module) {
         .pc = 0,
         .return_to_pc = src_module->code->code.size(),
         .last_locals_base_idx = 0,
+        .bp = 0,
         .code_object = src_module->code,
 
         .try_blocks{},
@@ -118,7 +120,17 @@ void Vm::exec_curr_code() {
         // 执行当前指令
         const Instruction& curr_inst = curr_frame->code_object->code[curr_frame->pc];
         try {
+            // std::cout << "current instr: " << opcode_to_string(curr_inst.opc) << std::endl;
             execute_unit(curr_inst);
+            // std::cout << "finish handle instr: " << opcode_to_string(curr_inst.opc) << std::endl;
+            // std::cout << "Stack:" << std::endl;
+            // size_t j = 0;
+            // for (auto st_mem: op_stack) {
+            //     std::cout << j << ": " << st_mem->debug_string() << std::endl;
+            //     ++j;
+            // }
+            // std::cout << "==End==" << std::endl;
+            // std::cout << "bp=" << bp << std::endl;
         } catch (NativeFuncError& e) {
             instruction_throw(e.name, e.msg);
         }
@@ -141,19 +153,20 @@ CallFrame* Vm::fetch_curr_frame() {
 }
 
 model::Object* Vm::fetch_stack_top() {
-    if (unique_op_stack.empty()) return nullptr; // 先判断空栈
-    auto stack_top = unique_op_stack.back();
+    if (op_stack.empty()) return nullptr; // 先判断空栈
+    auto stack_top = op_stack.back();
     if (stack_top) {
         stack_top->del_ref();
     }
-    unique_op_stack.pop_back();
+    op_stack.pop_back();
     return stack_top;
 }
 
 void Vm::push_to_stack(model::Object* obj) {
     if (obj == nullptr) return;
     obj->make_ref(); // 栈成为新持有者，增加引用计数
-    unique_op_stack.push_back(obj);
+    std::cout << "push: " << obj->debug_string() << std::endl;
+    op_stack.push_back(obj);
 }
 
 void Vm::set_and_exec_curr_code(model::CodeObject* code_object) {
