@@ -33,7 +33,6 @@ bool Vm::running = false;
 std::string Vm::main_file_path;
 std::vector<model::Object*> Vm::const_pool {};
 dep::HashMap<model::Object*> Vm::std_modules {};
-size_t Vm::bp = 0;
 
 
 Vm::Vm(const std::string& file_path_) {
@@ -75,7 +74,7 @@ void Vm::set_main_module(model::Module* src_module) {
     src_module->make_ref();
 
     // 创建模块级调用帧（CallFrame）：模块是顶层执行单元，对应一个顶层调用帧
-    op_stack.resize(src_module->code->local_count);
+    op_stack.resize(src_module->code->locals_count);
     auto module_call_frame = new CallFrame{
         .name = src_module->path,
 
@@ -83,7 +82,7 @@ void Vm::set_main_module(model::Module* src_module) {
 
         .pc = 0,
         .return_to_pc = src_module->code->code.size(),
-        .last_locals_base_idx = 0,
+        .last_bp = 0,
         .bp = 0,
         .code_object = src_module->code,
 
@@ -126,11 +125,13 @@ void Vm::exec_curr_code() {
             // std::cout << "Stack:" << std::endl;
             // size_t j = 0;
             // for (auto st_mem: op_stack) {
-            //     std::cout << j << ": " << st_mem->debug_string() << std::endl;
+            //     if (st_mem)
+            //         std::cout << j << ": " << st_mem->debug_string() << std::endl;
+            //     else
+            //         std::cout << j << ": " << "<nullptr>" << std::endl;
             //     ++j;
             // }
             // std::cout << "==End==" << std::endl;
-            // std::cout << "bp=" << bp << std::endl;
         } catch (NativeFuncError& e) {
             instruction_throw(e.name, e.msg);
         }
@@ -165,7 +166,6 @@ model::Object* Vm::fetch_stack_top() {
 void Vm::push_to_stack(model::Object* obj) {
     if (obj == nullptr) return;
     obj->make_ref(); // 栈成为新持有者，增加引用计数
-    std::cout << "push: " << obj->debug_string() << std::endl;
     op_stack.push_back(obj);
 }
 

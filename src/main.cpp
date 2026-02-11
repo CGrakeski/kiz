@@ -29,7 +29,7 @@ void args_parser(int argc, char* argv[]);
 void start_test();
 
 /// 运行文件
-void run_file(const std::string& file_path);
+void run_file(const std::string& path);
 
 /// 主函数
 int main(const int argc, char* argv[]) {
@@ -124,14 +124,14 @@ void args_parser(const int argc, char* argv[]) {
             run_file(path);
         } else {
             // 无效命令
-            std::cerr << "错误: 无效指令 " << cmd << "\n";
+            std::cerr << "invalid command" << cmd << "\n";
             show_help();
         }
         return;
     }
 
     // 参数过多 : 提示错误并显示帮助
-    std::cerr << "错误: 太多参数";
+    std::cerr << "too many arguments";
     show_help();
 }
 

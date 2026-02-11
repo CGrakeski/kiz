@@ -47,9 +47,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
     assert(args_obj != nullptr);
     auto* args_list = dynamic_cast<model::List*>(args_obj);
 
-    if (!args_list) {
-        assert(false && "CALL: 栈顶-1元素非List类型（参数必须封装为列表）");
-    }
+    assert(args_list && "CALL: 栈顶-1元素非List类型（参数必须封装为列表）");
     DEBUG_OUTPUT("start to call function");
 
     // 分类型处理函数调用（Function / NativeFunction）
@@ -90,7 +88,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
             .pc = 0,
             .return_to_pc = call_stack.back()->pc + 1,
-            .last_locals_base_idx = bp,
+            .last_bp = call_stack.back()->bp,
             .bp = op_stack.size(),
             .code_object = func->code,
 
@@ -101,17 +99,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
             .curr_error = nullptr,
         };
         auto old_frame = call_stack.back();
-        std::vector<model::Object*> temp_stack; // 临时栈部分
-        while (bp + old_frame->code_object->var_names.size() < op_stack.size()) {
-            temp_stack.push_back(op_stack.back());
-            op_stack.pop_back();
-        }
-        bp = op_stack.size();
-        new_frame->bp = bp;
-        op_stack.resize(op_stack.size() + func->code->var_names.size() + temp_stack.size());
-        for (auto temp: temp_stack ) {
-            push_to_stack(temp);
-        }
+        op_stack.resize(op_stack.size() + func->code->locals_count);
 
         // 储存self
         if (self and self->get_type() != model::Object::ObjectType::Module) {
@@ -131,9 +119,9 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
                     param_val = args_list->val[i];  // 从列表取参数
                 }
 
-                assert(param_val != nullptr && ("CALL: 参数" + std::to_string(i) + "为nil（不允许空参数）").c_str());
+                assert(param_val != nullptr);
 
-                op_stack[bp + i] = param_val;
+                op_stack[new_frame->bp + i] = param_val;
             }
 
             call_stack.emplace_back(std::move(new_frame));
@@ -150,7 +138,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
             // 增加参数引用计数（存入locals需持有引用）
             param_val->make_ref();
-            op_stack[bp + i] = param_val;
+            op_stack[new_frame->bp + i] = param_val;
         }
 
         // 压入新调用帧，更新程序计数器
@@ -219,7 +207,7 @@ void Vm::call_method(model::Object* obj, const std::string& attr_name, std::vect
     assert(obj != nullptr);
     auto parent_it = obj->attrs.find("__parent__");
     std::vector<std::string> magic_methods = {
-        "__add__", "__sub__", "__mul__", "__div__", "__pow__", "__pow__",
+        "__add__", "__sub__", "__mul__", "__div__", "__pow__", "__mod__",
         "__neg__", "__eq__", "__gt__", "__lt__", "__str__", "__dstr__",
         "__bool__", "__getitem__", "__setitem__", "contains", "__next__", "__hash__"
     };

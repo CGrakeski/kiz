@@ -78,70 +78,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             // break;
         }
         case AstType::ObjectStmt: {
-            const auto* obj_decl = dynamic_cast<ObjectStmt*>(stmt.get());
-            const size_t name_idx = get_or_add_name(code_chunks.back().var_names, obj_decl->name);
-
-            code_chunks.back().code_list.emplace_back(
-                Opcode::CREATE_OBJECT,
-                std::vector<size_t>{},
-                stmt->pos
-            );
-
-            code_chunks.back().code_list.emplace_back(
-                Opcode::SET_LOCAL,
-                std::vector{name_idx},
-                stmt->pos
-            );
-
-            if (!obj_decl->parent_name.empty()) {
-                const size_t parent_name_idx = get_or_add_name(code_chunks.back().attr_names, obj_decl->parent_name);
-
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::LOAD_VAR,
-                    std::vector{name_idx},
-                    stmt->pos
-                );
-
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::LOAD_VAR,
-                    std::vector{parent_name_idx},
-                    stmt->pos
-                );
-
-                const size_t parent_text_idx = get_or_add_name(code_chunks.back().attr_names, "__parent__");
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::SET_ATTR,
-                    std::vector{parent_text_idx},
-                    stmt->pos
-                );
-            }
-
-            for (const auto& sub_assign: obj_decl->body->statements) {
-                const auto sub_assign_stmt = dynamic_cast<AssignStmt*>(sub_assign.get());
-                if(sub_assign_stmt == nullptr) {
-                    err::error_reporter(file_path, stmt->pos,
-            "SyntaxError",
-            "Object Statement cannot include other code (only assign statement support)"
-                    );
-                }
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::LOAD_VAR,
-                    std::vector{name_idx},
-                    stmt->pos
-                );
-
-                assert(sub_assign_stmt->expr.get() != nullptr);
-                gen_expr(sub_assign_stmt->expr.get());
-                const size_t sub_name_idx = get_or_add_name(code_chunks.back().attr_names, sub_assign_stmt->name);
-
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::SET_ATTR,
-                    std::vector{sub_name_idx},
-                    stmt->pos
-                );
-
-            }
-
+            gen_object_stmt(dynamic_cast<ObjectStmt*>(stmt.get()));
             break;
         }
         case AstType::ExprStmt: {
@@ -204,97 +141,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::NamedFuncDeclStmt: {
-            auto* func = dynamic_cast<NamedFuncDeclStmt*>(stmt.get());
-
-            // 创建函数体
-            code_chunks.back().var_names.push_back(func->name);
-            code_chunks.emplace_back(CodeChunk());
-            // 添加参数到变量表
-            for (const auto& param : func->params) {
-                get_or_add_name(code_chunks.back().var_names, param);
-            }
-            // 生成函数体
-            gen_block(func->body.get());
-
-            // 确保有返回值（无显式返回则返回Nil）
-            if (code_chunks.back().code_list.empty() || code_chunks.back().code_list.back().opc != Opcode::RET) {
-                const auto nil = model::load_nil();
-                const size_t nil_idx = get_or_add_const(nil);
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::LOAD_CONST,
-                    std::vector{nil_idx},
-                    stmt->pos
-                );
-                code_chunks.back().code_list.emplace_back(
-                    Opcode::RET,
-                    std::vector<size_t>{},
-                    stmt->pos
-                );
-            }
-
-            std::cout << "== IR Result ==" << std::endl;
-            size_t i = 0;
-            for (const auto& inst : code_chunks.back().code_list) {
-                std::string opn_text;
-                for (auto opn : inst.opn_list) {
-                    opn_text += std::to_string(opn) + ",";
-                }
-                std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
-                ++i;
-            }
-            std::cout << "== End ==" << std::endl;
-            std::cout << "== VarName Result ==" << std::endl;
-            for (auto n: code_chunks.back().var_names) {
-                std::cout << n << "\n";
-            }
-            std::cout << "== End ==" << std::endl;
-
-            auto code_obj = new model::CodeObject(
-                code_chunks.back().code_list,
-                code_chunks.back().var_names,
-                code_chunks.back().attr_names,
-                code_chunks.back().free_names,
-                code_chunks.back().upvalues,
-                code_chunks.back().var_names.size()
-            );
-            code_chunks.pop_back();
-
-            // 生成函数体IR
-            const auto lambda_fn = new model::Function(
-                func->name,
-                code_obj,
-                func->params.size()
-            );
-            lambda_fn->has_rest_params = func->has_rest_params;
-
-
-            // 加载函数对象
-            const size_t fn_const_idx = get_or_add_const(lambda_fn);
-            code_chunks.back().code_list.emplace_back(
-                Opcode::LOAD_CONST,
-                std::vector{fn_const_idx},
-                stmt->pos
-            );
-
-            const size_t name_idx = get_or_add_name(code_chunks.back().var_names, func->name);
-
-            code_chunks.back().code_list.emplace_back(
-                Opcode::SET_LOCAL,
-                std::vector{name_idx},
-                stmt->pos
-            );
-
-            code_chunks.back().code_list.emplace_back(
-                Opcode::LOAD_VAR,
-                std::vector{name_idx},
-                stmt->pos
-            );
-
-            code_chunks.back().code_list.emplace_back(
-                Opcode::CREATE_CLOSURE,
-                std::vector<size_t>{},
-                stmt->pos
-            );
+            gen_fn_decl(dynamic_cast<NamedFuncDeclStmt*>(stmt.get()));
             break;
         }
         case AstType::NextStmt: {
@@ -378,6 +225,187 @@ void IRGenerator::gen_if(IfStmt* if_stmt) {
 
     // 填充JUMP的目标（if-else结束位置）
     code_chunks.back().code_list[jump_else_idx].opn_list[0] = code_chunks.back().code_list.size();
+}
+
+void IRGenerator::gen_fn_decl(NamedFuncDeclStmt* func) {
+    // 创建函数体
+    code_chunks.back().var_names.push_back(func->name);
+    code_chunks.emplace_back(CodeChunk());
+    // 添加参数到变量表
+    for (const auto& param : func->params) {
+        get_or_add_name(code_chunks.back().var_names, param);
+    }
+    // 生成函数体
+    gen_block(func->body.get());
+
+    // 确保有返回值（无显式返回则返回Nil）
+    if (code_chunks.back().code_list.empty() || code_chunks.back().code_list.back().opc != Opcode::RET) {
+        const auto nil = model::load_nil();
+        const size_t nil_idx = get_or_add_const(nil);
+        code_chunks.back().code_list.emplace_back(
+            Opcode::LOAD_CONST,
+            std::vector{nil_idx},
+            func->pos
+        );
+        code_chunks.back().code_list.emplace_back(
+            Opcode::RET,
+            std::vector<size_t>{},
+            func->pos
+        );
+    }
+
+    std::cout << "== IR Result ==" << std::endl;
+    size_t i = 0;
+    for (const auto& inst : code_chunks.back().code_list) {
+        std::string opn_text;
+        for (auto opn : inst.opn_list) {
+            opn_text += std::to_string(opn) + ",";
+        }
+        std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
+        ++i;
+    }
+    std::cout << "== End ==" << std::endl;
+    std::cout << "== VarName Result ==" << std::endl;
+    for (auto n: code_chunks.back().var_names) {
+        std::cout << n << "\n";
+    }
+    std::cout << "== End ==" << std::endl;
+
+    auto code_obj = new model::CodeObject(
+        code_chunks.back().code_list,
+        code_chunks.back().var_names,
+        code_chunks.back().attr_names,
+        code_chunks.back().free_names,
+        code_chunks.back().upvalues,
+        code_chunks.back().var_names.size()
+    );
+    code_obj->make_ref();
+    code_chunks.pop_back();
+
+    // 生成函数体IR
+    const auto fn = new model::Function(
+        func->name,
+        code_obj,
+        func->params.size()
+    );
+    fn->make_ref();
+    fn->has_rest_params = func->has_rest_params;
+
+
+    // 加载函数对象
+    const size_t fn_const_idx = get_or_add_const(fn);
+    code_chunks.back().code_list.emplace_back(
+        Opcode::LOAD_CONST,
+        std::vector{fn_const_idx},
+        func->pos
+    );
+
+    const size_t name_idx = get_or_add_name(code_chunks.back().var_names, func->name);
+
+    code_chunks.back().code_list.emplace_back(
+        Opcode::SET_LOCAL,
+        std::vector{name_idx},
+        func->pos
+    );
+
+    code_chunks.back().code_list.emplace_back(
+        Opcode::LOAD_VAR,
+        std::vector{name_idx},
+        func->pos
+    );
+
+    code_chunks.back().code_list.emplace_back(
+        Opcode::CREATE_CLOSURE,
+        std::vector<size_t>{},
+        func->pos
+    );
+}
+
+void IRGenerator::gen_object_stmt(ObjectStmt* obj_decl) {
+    const size_t name_idx = get_or_add_name(code_chunks.back().var_names, obj_decl->name);
+
+    code_chunks.back().code_list.emplace_back(
+        Opcode::CREATE_OBJECT,
+        std::vector<size_t>{},
+        obj_decl->pos
+    );
+
+    code_chunks.back().code_list.emplace_back(
+        Opcode::SET_LOCAL,
+        std::vector{name_idx},
+        obj_decl->pos
+    );
+
+    if (!obj_decl->parent_name.empty()) {
+        const size_t parent_name_idx = get_or_add_name(code_chunks.back().var_names, obj_decl->parent_name);
+
+        code_chunks.back().code_list.emplace_back(
+            Opcode::LOAD_VAR,
+            std::vector{name_idx},
+            obj_decl->pos
+        );
+
+        code_chunks.back().code_list.emplace_back(
+            Opcode::LOAD_VAR,
+            std::vector{parent_name_idx},
+            obj_decl->pos
+        );
+
+        const size_t parent_text_idx = get_or_add_name(code_chunks.back().attr_names, "__parent__");
+        code_chunks.back().code_list.emplace_back(
+            Opcode::SET_ATTR,
+            std::vector{parent_text_idx},
+            obj_decl->pos
+        );
+    }
+
+    for (const auto& sub_assign: obj_decl->body->statements) {
+        if (const auto sub_assign_stmt = dynamic_cast<AssignStmt*>(sub_assign.get())) {
+            code_chunks.back().code_list.emplace_back(
+                Opcode::LOAD_VAR,
+                std::vector{name_idx},
+                obj_decl->pos
+            );
+            assert(sub_assign_stmt->expr.get());
+            gen_expr(sub_assign_stmt->expr.get());
+
+            const size_t sub_name_idx = get_or_add_name(code_chunks.back().attr_names, sub_assign_stmt->name);
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::SET_ATTR,
+                std::vector{sub_name_idx},
+                obj_decl->pos
+            );
+        } else if (auto f_decl = dynamic_cast<NamedFuncDeclStmt*>(sub_assign.get())) {
+            gen_fn_decl(f_decl);
+            // 定位到set local指令
+            auto set_func_instr = code_chunks.back().code_list[code_chunks.back().code_list.size() - 3];
+            code_chunks.back().code_list.emplace_back(
+                Opcode::LOAD_VAR,
+                std::vector{name_idx},
+                set_func_instr.pos
+            );
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::LOAD_VAR,
+                std::vector{set_func_instr.opn_list[0]},
+                set_func_instr.pos
+            );
+
+            auto sub_func_name = code_chunks.back().var_names[set_func_instr.opn_list[0]];
+            auto sub_func_name_idx = get_or_add_name(code_chunks.back().attr_names, sub_func_name);
+            code_chunks.back().code_list.emplace_back(
+                Opcode::SET_ATTR,
+                std::vector{sub_func_name_idx},
+                set_func_instr.pos
+            );
+        } else {
+            err::error_reporter(file_path, obj_decl->pos,
+                "SyntaxError",
+                "Object Statement cannot include other code or other object statement (only assign and function statement support)"
+            );
+        }
+    }
 }
 
 void IRGenerator::gen_while(WhileStmt* while_stmt) {

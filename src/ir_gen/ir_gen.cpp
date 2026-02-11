@@ -75,6 +75,7 @@ model::CodeObject* IRGenerator::gen(std::unique_ptr<BlockStmt> ast_into) {
         code_chunks.back().upvalues,
         code_chunks.back().var_names.size()
     );
+    code_obj->make_ref();
     code_chunks.pop_back();
 
     return code_obj;

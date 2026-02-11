@@ -55,6 +55,8 @@ public:
     void gen_expr(Expr* expr);
 
     void gen_if(IfStmt* if_stmt);
+    void gen_fn_decl(NamedFuncDeclStmt* func);
+    void gen_object_stmt(ObjectStmt* stmt);
     void gen_while(WhileStmt* while_stmt);
 
 protected:

@@ -217,7 +217,7 @@ void Vm::handle_import(const std::string& module_path) {
 
         .pc = 0,
         .return_to_pc = module_obj->code->code.size(),
-        .last_locals_base_idx = 0,
+        .last_bp = 0,
         .code_object = module_obj->code,
 
         .try_blocks{},

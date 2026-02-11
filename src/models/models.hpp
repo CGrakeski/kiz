@@ -95,12 +95,12 @@ public:
     }
     void del_ref() {
         // std::cout << "deling refc: " << this->debug_string() << " " << refc_  << " -> " << refc_-1 << std::endl;
-        // const size_t old_ref = refc_.fetch_sub(1, std::memory_order_acq_rel);
+        const size_t old_ref = refc_.fetch_sub(1, std::memory_order_acq_rel);
         //
-        // if (old_ref == 1) {
-        //     std::cout << "deling object " << this->debug_string() << std::endl;
-        //     delete this;
-        // }
+        if (old_ref == 1) {
+            std::cout << "deling object " << this->debug_string() << std::endl;
+            delete this;
+        }
     }
 
     void attrs_insert(const std::string& name, Object* o) {
@@ -149,7 +149,7 @@ public:
     std::vector<std::string> free_names;
 
     std::vector<UpValue> upvalues;
-    size_t local_count;
+    size_t locals_count;
 
     static constexpr ObjectType TYPE = ObjectType::CodeObject;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
@@ -160,7 +160,7 @@ public:
         const std::vector<std::string>& f_n,
         const std::vector<UpValue>& u_v,
         const size_t l_c)
-            : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), local_count(l_c) {}
+            : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), locals_count(l_c) {}
 
     [[nodiscard]] std::string debug_string() const override {
         return "<CodeObject at " + ptr_to_string(this) + ">";
@@ -266,6 +266,9 @@ public:
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit List(std::vector<Object*> val) : val(std::move(val)) {
+        for (auto v: val) {
+            v->make_ref();
+        }
         attrs.insert("__parent__", based_list);
         auto zero = new Int(0);
         zero->make_ref();
@@ -332,6 +335,10 @@ public:
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
     explicit Dictionary(dep::Dict<std::pair<Object*, Object*>> val_) : val(std::move(val_)) {
+        for (auto& kv_pair : val_.to_vector() | std::views::values) {
+            if (kv_pair.first) kv_pair.first->make_ref();
+            if (kv_pair.second) kv_pair.second->make_ref();
+        }
         attrs.insert("__parent__", based_dict);
     }
     explicit Dictionary() {
@@ -342,7 +349,7 @@ public:
         std::string result = "{";
         auto kv_list = val.to_vector();
         size_t i = 0;
-        for (auto& [_, kv_pair] : kv_list) {
+        for (auto& kv_pair : kv_list | std::views::values) {
             result += kv_pair.first->debug_string() + ": " + kv_pair.second->debug_string();
             if (i != kv_list.size() - 1) {
                 result += ", ";

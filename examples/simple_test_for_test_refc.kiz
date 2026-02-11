@@ -1,0 +1,4 @@
+fn foo()
+    print(1)
+end
+foo()

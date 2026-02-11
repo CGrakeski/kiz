@@ -50,7 +50,7 @@ struct CallFrame {
 
     size_t pc = 0;
     size_t return_to_pc;
-    size_t last_locals_base_idx;
+    size_t last_bp;
     size_t bp;
     model::CodeObject* code_object;
     
@@ -68,7 +68,6 @@ public:
 
     static std::vector<model::Object*> op_stack;
     static std::vector<CallFrame*> call_stack;
-    static size_t bp; // 包含头
 
     static model::Int* small_int_pool[201];
     static std::vector<model::Object*> const_pool;

@@ -226,7 +226,7 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::CREATE_CLOSURE: {
-        model::Function* func_obj = dynamic_cast<model::Function*>(fetch_stack_top());
+        model::Function* func_obj = dynamic_cast<model::Function*>(op_stack.back());
 
         auto& upvalues = func_obj->code->upvalues;
         std::vector<model::Object*> free_vars {};
@@ -251,18 +251,27 @@ void Vm::execute_unit(const Instruction& instruction) {
         // 弹出栈顶-1元素 : 参数列表
         model::Object* args_obj = fetch_stack_top();
         handle_call(func_obj, args_obj, nullptr);
-
+        args_obj->del_ref();
         func_obj->del_ref();
         break;
     }
 
     case Opcode::RET: {
         auto frame = call_stack.back();
-        bp = frame->last_locals_base_idx;
         call_stack.pop_back();
+        call_stack.back()->bp = frame->last_bp;
+        call_stack.back()->pc = frame->return_to_pc;
 
-        auto callee_frame = call_stack.back();
-        callee_frame->pc = frame->return_to_pc;
+        auto return_val = op_stack.back();
+        assert(return_val);
+        return_val->make_ref();
+
+        while (frame->bp < op_stack.size()) {
+            op_stack.back()->del_ref();
+            op_stack.pop_back();
+        }
+
+        push_to_stack(return_val);
 
         delete frame;
         break;
@@ -270,7 +279,6 @@ void Vm::execute_unit(const Instruction& instruction) {
 
     case Opcode::CALL_METHOD: {
         auto obj = fetch_stack_top();
-        obj->make_ref();
 
         // 弹出栈顶-1元素 : 参数列表
         model::Object* args_obj = fetch_stack_top();
@@ -278,11 +286,11 @@ void Vm::execute_unit(const Instruction& instruction) {
         std::string attr_name = get_attr_name_by_idx(instruction.opn_list[0]);
 
         auto func_obj = get_attr(obj, attr_name);
-        func_obj->make_ref();
 
         handle_call(func_obj, args_obj, obj);
 
         func_obj->del_ref();
+        args_obj->del_ref();
         obj->del_ref();
         break;
     }
@@ -343,8 +351,7 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::LOAD_VAR: {
-        auto val = op_stack[bp + instruction.opn_list[0]];
-        val->make_ref();
+        auto val = op_stack[call_stack.back()->bp + instruction.opn_list[0]];
         push_to_stack(val);
         break;
     }
@@ -366,22 +373,46 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto func = dynamic_cast<model::Function*>(call_stack.back()->owner);
         assert(func != nullptr);
         push_to_stack(func->free_vars[ instruction.opn_list[0] ]);
-    }
-
-    case Opcode::SET_GLOBAL: {
         break;
     }
 
     case Opcode::SET_LOCAL: {
-        model::Object* var_val = fetch_stack_top();
-        auto new_val = model::copy_or_ref(var_val);
+        model::Object* value = fetch_stack_top();
 
-        op_stack[bp + instruction.opn_list[0]] = new_val;
-        var_val->del_ref();
+        size_t offset = call_stack.back()->bp + instruction.opn_list[0];
+        if (op_stack[offset]) {
+            op_stack[offset]->del_ref();
+        }
+        op_stack[offset] = model::copy_or_ref(value);
+        value->del_ref();
+        break;
+    }
+
+
+    case Opcode::SET_GLOBAL: {
+        auto offset = instruction.opn_list[0];
+
+        if (op_stack[offset]) {
+            op_stack[offset]->del_ref();
+        }
+
+        auto value = fetch_stack_top();
+        op_stack[offset] = model::copy_or_ref(value);
+        value->del_ref();
         break;
     }
 
     case Opcode::SET_NONLOCAL: {
+        auto upvalue = call_stack.back()->code_object->upvalues[ instruction.opn_list[0] ];
+        auto frame = call_stack[ call_stack.size() - upvalue.distance_from_curr];
+        size_t loc_based = frame->bp;
+
+        auto value = fetch_stack_top();
+        if (op_stack[loc_based + upvalue.idx]) {
+            op_stack[loc_based + upvalue.idx]->del_ref();
+        }
+        op_stack[loc_based + upvalue.idx] = value;
+        value->del_ref();
         break;
     }
 
@@ -453,7 +484,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         // 释放使用后的a/b对象，计数对称
         a->del_ref();
         b->del_ref();
-                break;
+        break;
     }
 
     case Opcode::CREATE_OBJECT: {
