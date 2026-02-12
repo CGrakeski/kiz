@@ -42,7 +42,8 @@ void Lexer::init_keywords() {
         {"or", TokenType::Or},
         {"not", TokenType::Not},
         {"is", TokenType::Is},
-        {"in", TokenType::In}
+        {"in", TokenType::In},
+        {"at", TokenType::At}
     };
 }
 

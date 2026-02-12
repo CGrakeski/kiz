@@ -360,8 +360,9 @@ struct ReturnStmt final :  Stmt {
 // import 语句
 struct ImportStmt final :  Stmt {
     std::string path;
-    explicit ImportStmt(const err::PositionInfo& pos, std::string p)
-        : path(std::move(p)) {
+    std::string var_name;
+    explicit ImportStmt(const err::PositionInfo& pos, std::string p, std::string v)
+        : path(std::move(p)), var_name(std::move(v)) {
         this->pos = pos;
         this->ast_type = AstType::ImportStmt;
     }

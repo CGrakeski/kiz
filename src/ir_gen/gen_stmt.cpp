@@ -34,6 +34,14 @@ void IRGenerator::gen_block(const BlockStmt* block) {
                 std::vector{name_idx},
                 stmt->pos
             );
+
+            const size_t local_name_idx = get_or_add_name(code_chunks.back().var_names, import_stmt->var_name);
+
+            code_chunks.back().code_list.emplace_back(
+                Opcode::SET_LOCAL,
+                std::vector{local_name_idx},
+                stmt->pos
+            );
             break;
         }
         case AstType::AssignStmt: {
@@ -50,31 +58,53 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::NonlocalAssignStmt: {
-            // // 变量声明：生成初始化表达式IR + 存储变量指令
-            // const auto* var_decl = dynamic_cast<NonlocalAssignStmt*>(stmt.get());
-            // gen_expr(var_decl->expr.get()); // 生成初始化表达式IR
-            // const size_t name_idx = get_or_add_name(curr_names, var_decl->name);
-            //
-            // code_chunks.back().code_list.emplace_back(
-            //     Opcode::SET_NONLOCAL,
-            //     std::vector<size_t>{name_idx},
-            //     stmt->pos
-            // );
-            // break;
+            // 变量声明：生成初始化表达式IR + 存储变量指令
+            const auto var_decl = dynamic_cast<NonlocalAssignStmt*>(stmt.get());
+            gen_expr(var_decl->expr.get()); // 生成初始化表达式IR
+            size_t i = 0;
+            size_t name_idx = 0;
+            bool find_free_var_it = false;
+            for (auto& code_chuck : code_chunks | std::views::reverse) {
+                auto free_it = std::ranges::find(code_chuck.var_names, var_decl->name);
+                if (free_it != code_chuck.var_names.end()) {
+                    name_idx = std::distance(code_chuck.var_names.begin(), free_it);
+                    find_free_var_it = true;
+                    break;
+                }
+                ++i;
+            }
+            if (find_free_var_it) {
+                gen_expr(var_decl->expr.get());
+                code_chunks.back().free_names.push_back(var_decl->name);
+                code_chunks.back().upvalues.push_back({i, name_idx});
+                code_chunks.back().code_list.emplace_back(
+                    Opcode::SET_NONLOCAL,
+                    std::vector{code_chunks.back().upvalues.size() - 1},
+                    stmt->pos
+                );
+            } else {
+                err::error_reporter(file_path, stmt->pos, "NameError", "Undefined nonlocal var '"+var_decl->name+"'");
+            }
+            break;
         }
 
         case AstType::GlobalAssignStmt: {
-            // // 变量声明：生成初始化表达式IR + 存储变量指令
-            // const auto* var_decl = dynamic_cast<GlobalAssignStmt*>(stmt.get());
-            // gen_expr(var_decl->expr.get()); // 生成初始化表达式IR
-            // const size_t name_idx = get_or_add_name(curr_names, var_decl->name);
-            //
-            // code_chunks.back().code_list.emplace_back(
-            //     Opcode::SET_GLOBAL,
-            //     std::vector<size_t>{name_idx},
-            //     stmt->pos
-            // );
-            // break;
+            // 变量声明：生成初始化表达式IR + 存储变量指令
+            const auto var_decl = dynamic_cast<GlobalAssignStmt*>(stmt.get());
+            auto free_it = std::ranges::find(code_chunks.front().var_names, var_decl->name);
+            if (free_it != code_chunks.front().var_names.end()) {
+                size_t name_idx = std::distance(code_chunks.front().var_names.begin(), free_it);
+                gen_expr(var_decl->expr.get());
+                code_chunks.back().code_list.emplace_back(
+                    Opcode::SET_GLOBAL,
+                    std::vector{name_idx},
+                    stmt->pos
+                );
+                break;
+            } else {
+                err::error_reporter(file_path, stmt->pos, "NameError", "Undefined global var '"+var_decl->name+"'");
+            }
+            break;
         }
         case AstType::ObjectStmt: {
             gen_object_stmt(dynamic_cast<ObjectStmt*>(stmt.get()));

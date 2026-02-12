@@ -1,4 +1,4 @@
-import "be_imported.kiz"
+import test at "be_imported.kiz"
 
 print(test)
 print(test.abc)

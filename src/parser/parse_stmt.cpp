@@ -204,10 +204,16 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         DEBUG_OUTPUT("parsing import");
         auto tok = skip_token("import");
         // 读取模块路径
-        const std::string import_path = skip_token().text;
+        const std::string var_name = skip_token().text;
+        std::string import_path = var_name;
+
+        if (curr_token().type == TokenType::At) {
+            skip_token("at");
+            import_path = skip_token().text;
+        }
 
         skip_end_of_ln();
-        return std::make_unique<ImportStmt>(tok.pos, import_path);
+        return std::make_unique<ImportStmt>(tok.pos, import_path, var_name);
     }
 
     // 解析nonlocal语句

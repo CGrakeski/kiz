@@ -41,7 +41,7 @@ enum class TokenType {
     Percent, Caret, Bang, Equal, NotEqual,
     Less, LessEqual, Greater, GreaterEqual, Pipe,
     FatArrow, ThinArrow, Colon,
-    Not, And, Or, Is, In,
+    Not, And, Or, Is, In, At,
     // 特殊标记
     EndOfFile, EndOfLine, Unknown
 };
