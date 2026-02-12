@@ -1,4 +1,8 @@
 # 从源代码构建kiz指南
+
+**注意**: 如果您更习惯使用xmake, 请移步
+- [xmake构建教程](xmake构建教程.md)
+
 本文基于项目 `CMakeLists.txt`，说明如何从源码构建出：
 - Windows：`kiz.exe`
 - Linux / macOS：`kiz.elf`
