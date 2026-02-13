@@ -156,7 +156,6 @@ void Vm::exec_curr_code() {
             curr_frame->pc++;
         }
     }
-
 }
 
 CallFrame* Vm::get_frame() {

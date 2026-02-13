@@ -1,4 +1,6 @@
-name = "kiz"
-for area in ["web", "os", "EMB"]
-	print(f"Welcome developer from {area} to use {name}")
+fn __call__
+    name = "kiz"
+    for area in ["web", "os", "EMB"]
+	    print(f"Welcome developer from {area} to use {name}")
+    end
 end

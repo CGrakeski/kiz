@@ -152,8 +152,8 @@ void Vm::handle_import(const std::string& module_path) {
     std::vector for_search_paths = {
         get_exe_abs_dir() / current_file_path.parent_path() / fs::path(module_path),
         get_exe_abs_dir() / fs::path(module_path),
-        get_exe_abs_dir().parent_path().parent_path() / fs::path("modules") / fs::path(module_path) / fs::path("__main__.kiz"),
-        get_exe_abs_dir().parent_path().parent_path() / fs::path("modules") / fs::path(module_path)
+        get_exe_abs_dir().parent_path() / fs::path("modules") / fs::path(module_path) / fs::path("__main__.kiz"),
+        get_exe_abs_dir().parent_path() / fs::path("modules") / fs::path(module_path)
     };
 
 #ifdef __EMSCRIPTEN__
@@ -197,8 +197,10 @@ void Vm::handle_import(const std::string& module_path) {
         return;
     } else {
         throw NativeFuncError("PathError", std::format(
-            "Failed to find module in path '{}', tried '{}', '{}'", module_path,
-            for_search_paths[0].string(), for_search_paths[1].string()));
+            "Failed to find module in path '{}', tried '{}', '{}', '{}', '{}'", module_path,
+            for_search_paths[0].string(), for_search_paths[1].string(),
+            for_search_paths[1].string(), for_search_paths[2].string()
+        ));
     }
 
     Lexer lexer(module_path);
@@ -222,7 +224,7 @@ void Vm::handle_import(const std::string& module_path) {
         .owner = module_obj,
 
         .pc = 0,
-        .return_to_pc = module_obj->code->code.size(),
+        .return_to_pc = module_obj->code->code.size() + 1,
         .last_bp = call_stack.back()->bp,
         .bp = op_stack.size(),
         .code_object = module_obj->code,
@@ -283,7 +285,6 @@ void Vm::handle_import(const std::string& module_path) {
     auto frame = call_stack.back();
     call_stack.pop_back();
     call_stack.back()->bp = frame->last_bp;
-    call_stack.back()->pc = frame->return_to_pc;
 
     while (frame->bp < op_stack.size()) {
         op_stack.back()->del_ref();
@@ -304,7 +305,6 @@ void Vm::handle_import(const std::string& module_path) {
 
     /// 抵消上一次的幽灵持有
     module_obj->del_ref();
-    return;
 }
 
 }
