@@ -21,6 +21,7 @@ Object* list_call(Object* self, const List* args) {
             break;
         }
         list.push_back(res);
+        res->del_ref();
     }
     obj->val = list;
     return obj;

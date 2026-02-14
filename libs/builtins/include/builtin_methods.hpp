@@ -117,7 +117,8 @@ Object* file_handle_readline(Object* self, const List* args);
 Object* file_handle_close(Object* self, const List* args);
 
 // Range类型
+Object* range_call(Object* self, const List* args);
 Object* range_next(Object* self, const List* args);
-
+Object* range_dstr(Object* self, const List* args);
 
 }

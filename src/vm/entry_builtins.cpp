@@ -22,6 +22,7 @@ void Vm::entry_builtins() {
     model::stop_iter_signal->attrs_insert("__parent__", model::based_obj);
     model::based_code_object->attrs_insert("__parent__", model::based_obj);
     model::based_file_handle->attrs_insert("__parent__", model::based_obj);
+    model::based_range->attrs_insert("__parent__", model::based_obj);
 
     // Object 基类 方法
     model::based_obj->attrs_insert("__eq__", model::create_nfunc([](const model::Object* self, const model::List* args) -> model::Object* {
@@ -159,6 +160,11 @@ void Vm::entry_builtins() {
     model::based_file_handle->attrs_insert("readline", model::create_nfunc(model::file_handle_readline));
     model::based_file_handle->attrs_insert("close", model::create_nfunc(model::file_handle_close));
 
+    // Range类型
+    model::based_range->attrs_insert("__call__", model::create_nfunc(model::range_call));
+    model::based_range->attrs_insert("__dstr__", model::create_nfunc(model::range_dstr));
+    model::based_range->attrs_insert("__next__", model::create_nfunc(model::range_next));
+
 
     model::based_error->attrs_insert("__call__", model::create_nfunc([](model::Object* self, model::List* args) {
         assert( args->val.size() == 2);
@@ -239,6 +245,7 @@ void Vm::entry_builtins() {
     builtin_insert("Error", model::based_error);
     builtin_insert("Module", model::based_module);
     builtin_insert("FileHandle", model::based_file_handle);
+    builtin_insert("Range", model::based_range);
     builtin_insert("__CodeObject", model::based_code_object);
     builtin_insert("__StopIterSignal__", model::stop_iter_signal);
 }

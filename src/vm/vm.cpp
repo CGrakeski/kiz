@@ -57,6 +57,7 @@ Vm::Vm(const std::string& file_path_) {
     model::stop_iter_signal->mark_as_important();
     model::based_file_handle->mark_as_important();
     model::based_code_object->mark_as_important();
+    model::based_range->mark_as_important();
 
     for (dep::BigInt i = 0; i < 201; i+= 1) {
         auto int_obj = new model::Int{i};

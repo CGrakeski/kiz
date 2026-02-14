@@ -141,6 +141,7 @@ inline auto based_decimal = new Object();
 inline auto based_module = new Object();
 inline auto based_code_object = new Object();
 inline auto based_file_handle = new Object();
+inline auto based_range = new Object();
 inline auto stop_iter_signal = new Object();
 
 class List;
