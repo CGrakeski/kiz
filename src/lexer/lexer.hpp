@@ -19,7 +19,7 @@ namespace kiz {
 enum class TokenType {
     // 关键字
     Func, If, Else, While, Return, Import, Break, Object,
-    True, False, Nil, End, Next, Nonlocal, Global, Try, Catch, Finally, For, Throw,
+    True, False, Nil, End, Next, Nonlocal, Global, Try, Catch, Finally, For, Throw, Ensure,
     // 标识符
     Identifier,
     // 赋值运算符

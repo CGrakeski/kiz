@@ -44,6 +44,12 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             );
             break;
         }
+        case AstType::EnsureStmt: {
+            const auto ensure = dynamic_cast<EnsureStmt*>(stmt.get());
+            gen_expr(ensure->expr.get()); // 生成初始化表达式IR
+            //todo
+            break;
+        }
         case AstType::AssignStmt: {
             // 变量声明：生成初始化表达式IR + 存储变量指令
             const auto* var_decl = dynamic_cast<AssignStmt*>(stmt.get());
@@ -318,7 +324,9 @@ void IRGenerator::gen_fn_decl(NamedFuncDeclStmt* func) {
         code_chunks.back().attr_names,
         code_chunks.back().free_names,
         code_chunks.back().upvalues,
-        code_chunks.back().var_names.size()
+        code_chunks.back().var_names.size(),
+        code_chunks.back().exception_tables,
+        code_chunks.back().ensure_stmts
     );
     code_chunks.pop_back();
 
@@ -585,107 +593,31 @@ void IRGenerator::gen_for(ForStmt* for_stmt) {
 
 void IRGenerator::gen_try(TryStmt* try_stmt) {
     assert(try_stmt);
-
-    // 添加TryFrame{catch_start, finally_start}
     size_t try_start_idx = code_chunks.back().code_list.size();
-    code_chunks.back().code_list.emplace_back(
-        Opcode::ENTER_TRY,
-        std::vector<size_t>{0, 0},  // 占位[catch_start, finally_start]
-        try_stmt->pos
-    );
 
     // 生成 try 块的语句
     gen_block(try_stmt->try_block.get());
 
-    // 标记为可以解决错误
-    code_chunks.back().code_list.emplace_back(Opcode::MARK_HANDLE_ERROR, std::vector<size_t>{}, try_stmt->pos);
+    std::vector<size_t> catch_start_pc;
+    model::ExceptionTable exception_table;
+    exception_table.type_part_start_pc = try_start_idx;
+    exception_table.type_part_end_pc = code_chunks.back().code_list.size();
 
-    // 跳转到finally
-    size_t try_end_idx = code_chunks.back().code_list.size();
-    code_chunks.back().code_list.emplace_back(
-        Opcode::JUMP,
-        std::vector<size_t>{0},  // 占位
-        try_stmt->pos
-    );
-
-    code_chunks.back().code_list[try_start_idx].opn_list[0] = code_chunks.back().code_list.size();
-
-    std::vector<size_t> catch_jump_to_finally;
     for (const auto& catch_stmt : try_stmt->catch_blocks) {
-        // 加载实际错误
-        code_chunks.back().code_list.emplace_back(
-            Opcode::LOAD_ERROR, std::vector<size_t>{}, catch_stmt->pos
-        );
+        auto error_type = catch_stmt->error_text;
+        auto error_type_name_idx = get_or_add_const(new model::String(error_type));
 
-        // 加载需捕获的错误类 catch e : Error
-        //                           ^^^^^
-        gen_expr(catch_stmt->error.get());
-
-        // 判断 需捕获的错误类  是不是 实际错误的原型
-        code_chunks.back().code_list.emplace_back(
-            Opcode::IS_CHILD, std::vector<size_t>{}, catch_stmt->pos
-        );
-        // 如果不是就跳转到下一个catch
-        size_t curr_jump_if_false_idx = code_chunks.back().code_list.size();
-        code_chunks.back().code_list.emplace_back(
-            Opcode::JUMP_IF_FALSE, std::vector<size_t>{0}, catch_stmt->pos  // 占位
-        );
-
-        // 如果是就继续
-        // 标记为可以解决错误
-        code_chunks.back().code_list.emplace_back(Opcode::MARK_HANDLE_ERROR, std::vector<size_t>{}, try_stmt->pos);
-
-        // 加载实际错误
-        code_chunks.back().code_list.emplace_back(
-            Opcode::LOAD_ERROR, std::vector<size_t>{}, catch_stmt->pos
-        );
-
-        // 储存到变量
-        // 加载需捕获的错误类 catch e : Error
-        //                      ^^
-        const size_t name_idx = get_or_add_name(code_chunks.back().var_names, catch_stmt->var_name);
-        code_chunks.back().code_list.emplace_back(
-            Opcode::SET_LOCAL, std::vector{name_idx}, catch_stmt->pos
-        );
-
-
-        // 生成 catch 块的语句
+        exception_table.for_catch_texts.push_back(error_type_name_idx);
+        exception_table.catch_start_pc.push_back(code_chunks.back().code_list.size());
         gen_block(catch_stmt->catch_block.get());
-
-
-        // 处理后跳转到finally
-        catch_jump_to_finally.emplace_back(code_chunks.back().code_list.size());
-        code_chunks.back().code_list.emplace_back(
-            Opcode::JUMP, std::vector<size_t>{0}, catch_stmt->pos  // 占位
-        );
-
-        size_t end_catch_idx = code_chunks.back().code_list.size();
-        code_chunks.back().code_list[curr_jump_if_false_idx].opn_list[0] = end_catch_idx;
     }
 
-    // 生成 finally 块的语句
-    const size_t finally_start_idx = code_chunks.back().code_list.size();
-    if (try_stmt->finally_block) {
-        gen_block(try_stmt->finally_block.get());
-    }
-
-    // 回填 finally 块开始处
-    code_chunks.back().code_list[try_start_idx].opn_list[1] = finally_start_idx;
-    code_chunks.back().code_list[try_end_idx].opn_list[0] = finally_start_idx;
-
-    for (auto pos : catch_jump_to_finally) {
-        code_chunks.back().code_list[pos].opn_list[0] = finally_start_idx;
-    }
-
-
-    size_t skip_rethrow_idx = code_chunks.back().code_list.size();
-    code_chunks.back().code_list.emplace_back(
-        Opcode::JUMP_IF_FINISH_HANDLE_ERROR, std::vector<size_t>{0}, try_stmt->pos  // 占位
-    );
+    exception_table.mismatch_pc = code_chunks.back().code_list.size();
     code_chunks.back().code_list.emplace_back( Opcode::LOAD_ERROR, std::vector<size_t>{}, try_stmt->pos);
     code_chunks.back().code_list.emplace_back(Opcode::THROW, std::vector<size_t>{}, try_stmt->pos);
 
-    code_chunks.back().code_list[skip_rethrow_idx].opn_list[0] = code_chunks.back().code_list.size();
+    code_chunks.back().exception_tables.push_back(exception_table);
+
 }
 
 }

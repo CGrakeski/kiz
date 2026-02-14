@@ -34,31 +34,6 @@ std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith) {
     return std::make_unique<BlockStmt>(block_tok.pos, std::move(block_stmts));
 }
 
-std::unique_ptr<BlockStmt> Parser::parse_block(TokenType endswith1, TokenType endswith2, TokenType endswith3) {
-    DEBUG_OUTPUT("parsing block (with end)");
-    std::vector<std::unique_ptr<Stmt>> block_stmts;
-    auto block_tok = curr_token();
-
-    while (curr_tok_idx_ < tokens_.size()) {
-        const Token& curr_tok = curr_token();
-
-        if (curr_tok.type == endswith1
-         or curr_tok.type == endswith2
-         or curr_tok.type == endswith3
-        ) break;
-
-        if (curr_tok.type == TokenType::EndOfFile) {
-            err::error_reporter(file_path, curr_token().pos, "SyntaxError", "Block not terminated with 'end'");
-        }
-
-        if (auto stmt = parse_stmt()) {
-            block_stmts.push_back(std::move(stmt));
-        }
-    }
-
-    return std::make_unique<BlockStmt>(block_tok.pos, std::move(block_stmts));
-}
-
 // parse_if实现
 std::unique_ptr<IfStmt> Parser::parse_if() {
     DEBUG_OUTPUT("parsing if");
@@ -276,6 +251,14 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         skip_token("end");
         return std::make_unique<ForStmt>(tok.pos, name, std::move(expr), std::move(for_block));
     }
+
+    // 解析ensure语句
+    if (curr_tok.type == TokenType::Ensure) {
+        auto tok = skip_token("ensure");
+        std::unique_ptr<Expr> expr = parse_expression();
+        skip_end_of_ln();
+        return std::make_unique<EnsureStmt>(tok.pos, std::move(expr));
+    }
     
     // 解析try语句
     if (curr_tok.type == TokenType::Try) {
@@ -283,7 +266,7 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
         auto tok = skip_token("try");
         
         skip_start_of_block();
-        auto try_block = parse_block(TokenType::End, TokenType::Catch, TokenType::Finally);
+        auto try_block = parse_block(TokenType::Catch);
         if (curr_token().type != TokenType::Catch)
             err::error_reporter(file_path, curr_token().pos, "SyntaxError",
             "Found try block without catch block");
@@ -295,26 +278,17 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
             DEBUG_OUTPUT("parsing catch");
             auto catch_tok = skip_token("catch"); // 跳过catch关键字
             const std::string var_name = skip_token().text; // 捕获变量名（e）
-            skip_token(":"); // 跳过冒号
-            std::unique_ptr<Expr> error_type = parse_expression(); // 捕获类型（Error）
+            skip_token("("); // 跳过(
+            std::string error_type = skip_token().text; // 捕获类型（Error）
+            skip_token(")"); // 跳过)
 
             skip_start_of_block();
-            // catch块终止符包含Catch/Finally/End，避免吞掉finally
-            auto catch_block = parse_block(TokenType::Catch, TokenType::Finally, TokenType::End);
+            auto catch_block = parse_block(TokenType::Catch);
             // 构建catch语句节点
             catch_blocks.push_back(std::make_unique<CatchStmt>(
                 catch_tok.pos, std::move(error_type), var_name, std::move(catch_block)
             ));
         }
-
-        // 先处理finally块，再处理end
-        std::unique_ptr<BlockStmt> finally_block;
-        if (curr_token().type == TokenType::Finally) {
-            skip_token("finally");
-            skip_start_of_block();
-            finally_block = parse_block();
-        }
-
         // 必须存在end结束try块
         if (curr_token().type != TokenType::End) {
             err::error_reporter(file_path, curr_token().pos, "SyntaxError",
@@ -330,7 +304,7 @@ std::unique_ptr<Stmt> Parser::parse_stmt() {
 
         // 构建TryStmt节点，返回给上层
         return std::make_unique<TryStmt>(tok.pos, std::move(try_block),
-            std::move(catch_blocks), std::move(finally_block)
+            std::move(catch_blocks)
         );
     }
 

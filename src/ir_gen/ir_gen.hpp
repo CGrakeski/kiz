@@ -31,6 +31,9 @@ struct CodeChunk {
     std::vector<Instruction> code_list;
     std::vector<LoopInfo> loop_info_stack;
     std::vector<model::UpValue> upvalues;
+
+    std::vector<model::ExceptionTable> exception_tables;
+    std::vector<Instruction> ensure_stmts;
 };
 
 class IRGenerator {

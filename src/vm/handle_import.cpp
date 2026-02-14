@@ -223,7 +223,6 @@ void Vm::handle_import(const std::string& module_path) {
         .bp = op_stack.size(),
         .code_object = module_obj->code,
 
-        .try_blocks{},
         .iters{},
 
         .curr_error = nullptr
@@ -258,7 +257,7 @@ void Vm::handle_import(const std::string& module_path) {
         }
 
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
-            curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR
+            curr_inst.opc != Opcode::RET
             && curr_inst.opc != Opcode::THROW && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER) {
             curr_frame->pc++;
             }

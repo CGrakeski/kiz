@@ -178,7 +178,9 @@ void Vm::entry_builtins() {
     }));
 
     model::based_error->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args) {
-        return new model::String("Error");
+        auto name = obj_to_debug_str(get_attr_current(self, "__name__"));
+        auto msg = obj_to_debug_str(get_attr_current(self, "__msg__"));
+        return new model::String(std::format("Error(name={}, msg={})", name, msg));
     }));
 
     model::based_module->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args){

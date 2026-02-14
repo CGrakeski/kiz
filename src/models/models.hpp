@@ -69,6 +69,15 @@ struct UpValue {
     size_t idx;
 };
 
+
+struct ExceptionTable {
+    size_t type_part_start_pc;
+    size_t type_part_end_pc;
+    std::vector<size_t> for_catch_texts;
+    std::vector<size_t> catch_start_pc;
+    size_t mismatch_pc;
+};
+
 class Object {
     std::atomic<size_t> refc_ = 0;
     bool is_important = false; // 重要对象不参与make_refc/del_refc
@@ -157,6 +166,9 @@ public:
     std::vector<UpValue> upvalues;
     size_t locals_count;
 
+    std::vector<ExceptionTable> exception_tables;
+    std::vector<kiz::Instruction> ensure_stmts;
+
     static constexpr ObjectType TYPE = ObjectType::CodeObject;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
@@ -165,8 +177,11 @@ public:
         const std::vector<std::string>& a_n,
         const std::vector<std::string>& f_n,
         const std::vector<UpValue>& u_v,
-        const size_t l_c)
-            : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), locals_count(l_c) {}
+        const size_t l_c,
+        std::vector<ExceptionTable> et,
+        std::vector<kiz::Instruction> e_s)
+            : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), locals_count(l_c),
+                 exception_tables(et), ensure_stmts(e_s) {}
 
     [[nodiscard]] std::string debug_string() const override {
         return "<CodeObject at " + ptr_to_string(this) + ">";

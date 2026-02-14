@@ -285,7 +285,9 @@ void IRGenerator::gen_expr(Expr* expr) {
             code_chunks.back().attr_names,
             code_chunks.back().free_names,
             code_chunks.back().upvalues,
-            code_chunks.back().var_names.size()
+            code_chunks.back().var_names.size(),
+            code_chunks.back().exception_tables,
+            code_chunks.back().ensure_stmts
         );
         code_chunks.pop_back();
 

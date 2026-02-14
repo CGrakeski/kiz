@@ -416,30 +416,6 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
 
-    case Opcode::ENTER_TRY: {
-        size_t catch_start = instruction.opn_list[0];
-        size_t finally_start = instruction.opn_list[1];
-        call_stack.back()->try_blocks.emplace_back(false, catch_start, finally_start);
-        break;
-    }
-
-    case Opcode::JUMP_IF_FINISH_HANDLE_ERROR: {
-        bool finish_handle_error = call_stack.back()->try_blocks.back().handle_error;
-        // 弹出TryFrame
-        call_stack.back()->try_blocks.pop_back();
-        if (finish_handle_error) {
-            call_stack.back()->pc = instruction.opn_list[0];
-        } else {
-            call_stack.back()->pc ++;
-        }
-        break;
-    }
-
-    case Opcode::MARK_HANDLE_ERROR: {
-        call_stack.back()->try_blocks.back().handle_error = true;
-        break;
-    }
-
     case Opcode::THROW: {
         auto top = get_and_pop_stack_top();
         top->del_ref();      // 释放栈引用

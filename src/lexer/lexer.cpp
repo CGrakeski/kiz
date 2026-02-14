@@ -26,7 +26,7 @@ void Lexer::init_keywords() {
         {"next", TokenType::Next},
         {"try", TokenType::Try},
         {"catch", TokenType::Catch},
-        {"finally", TokenType::Finally},
+        {"ensure", TokenType::Ensure},
         {"throw", TokenType::Throw},
         {"import", TokenType::Import},
         {"nonlocal", TokenType::Nonlocal},

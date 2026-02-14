@@ -38,12 +38,6 @@ struct Instruction {
     Instruction(Opcode o, std::vector<size_t> ol, err::PositionInfo& p) : opc(o), opn_list(std::move(ol)), pos(p) {}
 };
 
-struct TryFrame {
-    bool handle_error = false;
-    size_t catch_start = 0;
-    size_t finally_start = 0;
-};
-
 struct CallFrame {
     std::string name;
 
@@ -55,7 +49,6 @@ struct CallFrame {
     size_t bp;
     model::CodeObject* code_object;
     
-    std::vector<TryFrame> try_blocks;
     std::vector<model::Object*> iters;
 
     model::Object* curr_error;
@@ -119,8 +112,9 @@ public:
     ///| 处理import
     static void handle_import(const std::string& module_path);
 
-    ///| 处理报错(设置到catch/finally pc)或者进行traceback
+    ///| 处理报错(设置到catch)或者进行traceback
     static void handle_throw();
+    static void handle_ensure();
 
     ///| 注册内置对象
     static void entry_builtins();

@@ -25,31 +25,37 @@ void Vm::forward_to_handle_throw(const std::string& name, const std::string& con
 }
 
 void Vm::handle_throw() {
-    assert(call_stack.back()->curr_error != nullptr);
+    assert(call_stack.back()->curr_error);
+
+    auto err_name_it = call_stack.back()->curr_error->attrs.find("__name__");
+    auto err_msg_it = call_stack.back()->curr_error->attrs.find("__msg__");
+    if (!err_name_it or !err_msg_it) {
+        throw NativeFuncError("NameError",
+        "Undefined attribute '__name__' '__msg__'  of " + obj_to_debug_str(call_stack.back()->curr_error) + " (when try to throw it)"
+        );
+    }
+    auto error_name = obj_to_str(err_name_it->value);
+    auto error_msg = obj_to_str(err_msg_it->value);
 
     size_t frames_to_pop = 0;
     CallFrame* target_frame = nullptr;
     size_t target_pc = 0;
+    size_t current_pc = call_stack.back()->pc;
 
     // 逆序遍历调用栈，寻找最近的 try 块
     for (auto frame : std::ranges::reverse_view(call_stack)) {
-        if (!frame->try_blocks.empty()) {
-            target_frame = frame;
-            auto try_frame = frame->try_blocks.back();
-            // std::cout << "try_frame.handle_error: " << try_frame.handle_error << std::endl;
-            if (try_frame.handle_error) {
-                // 该情况下, error从catch中抛出
-                // 改为从 finally 开始执行
-                target_pc = try_frame.finally_start;
-                // std::cout << "find finally pc!" << target_pc << std::endl;
-                // 重置错误处理状态, 使其在finally后可以rethrow
-                frame->try_blocks.back().handle_error = false;
-                // std::cout << "change try_frame.handle_error: " << frame->try_blocks.back().handle_error << std::endl;
-                break;
-            } else {
-                target_pc = try_frame.catch_start;
-                assert(target_pc != 0);
-                break;
+        auto exc_tbls = frame->code_object->exception_tables;
+        for (auto exc_tbl : exc_tbls) {
+            if (exc_tbl.type_part_end_pc <= current_pc
+                and exc_tbl.type_part_end_pc >= target_pc
+            ) {
+                target_frame = frame;
+                for (auto err_name_idx: exc_tbl.for_catch_texts ) {
+                    if (const_pool[err_name_idx] == err_name_it->value) {
+                        break;
+                    }
+                }
+                continue;
             }
         }
         frames_to_pop++;
@@ -66,15 +72,7 @@ void Vm::handle_throw() {
         return;
     }
 
-    auto err_name_it = call_stack.back()->curr_error->attrs.find("__name__");
-    auto err_msg_it = call_stack.back()->curr_error->attrs.find("__msg__");
-    if (!err_name_it or !err_msg_it) {
-        throw NativeFuncError("NameError",
-        "Undefined attribute '__name__' '__msg__'  of " + obj_to_debug_str(call_stack.back()->curr_error) + " (when try to throw it)"
-        );
-    }
-    auto error_name = obj_to_str(err_name_it->value);
-    auto error_msg = obj_to_str(err_msg_it->value);
+
 
     // 报错
     if (const auto err_obj = dynamic_cast<model::Error*>(call_stack.back()->curr_error)) {
@@ -94,6 +92,10 @@ void Vm::handle_throw() {
     call_stack.back()->curr_error = nullptr;
 
     throw KizStopRunningSignal();
+}
+
+void Vm::handle_ensure() {
+
 }
 
 }

@@ -28,7 +28,7 @@ enum class AstType {
     AssignStmt, NonlocalAssignStmt, GlobalAssignStmt,
     SetMemberStmt, SetItemStmt,
     BlockStmt, IfStmt, WhileStmt,
-    ReturnStmt, ImportStmt, ForStmt, TryStmt, CatchStmt,
+    ReturnStmt, ImportStmt, ForStmt, TryStmt, CatchStmt, EnsureStmt,
     NullStmt, ExprStmt,
     BreakStmt, NextStmt, ThrowStmt, ObjectStmt, NamedFuncDeclStmt
 };
@@ -239,14 +239,14 @@ struct ForStmt final :  Stmt {
 
 // catch语句
 struct CatchStmt final :  Stmt {
-    std::unique_ptr<Expr> error;
+    std::string error_text;
     std::string var_name;
     std::unique_ptr<BlockStmt> catch_block;
     explicit CatchStmt(const err::PositionInfo& pos,
-        std::unique_ptr<Expr> e,
+        std::string e,
         std::string v,
         std::unique_ptr<BlockStmt> c
-    ) : error(std::move(e)), var_name(std::move(v)), catch_block(std::move(c)) {
+    ) : error_text(std::move(e)), var_name(std::move(v)), catch_block(std::move(c)) {
         this->pos = pos;
         this->ast_type = AstType::CatchStmt;
     }
@@ -256,16 +256,25 @@ struct CatchStmt final :  Stmt {
 struct TryStmt final :  Stmt {
     std::unique_ptr<BlockStmt> try_block;
     std::vector<std::unique_ptr<CatchStmt>> catch_blocks;
-    std::unique_ptr<BlockStmt> finally_block;
     explicit TryStmt(const err::PositionInfo& pos,
         std::unique_ptr<BlockStmt> t,
-        std::vector<std::unique_ptr<CatchStmt>> c,
-        std::unique_ptr<BlockStmt> f
-    ) : try_block(std::move(t)), catch_blocks(std::move(c)), finally_block(std::move(f)) {
+        std::vector<std::unique_ptr<CatchStmt>> c
+    ) : try_block(std::move(t)), catch_blocks(std::move(c)){
         this->pos = pos;
         this->ast_type = AstType::TryStmt;
     }
 };
+
+// ensure语句
+struct EnsureStmt final :  Stmt {
+    std::unique_ptr<Expr> expr;
+    explicit EnsureStmt(const err::PositionInfo& pos, std::unique_ptr<Expr> e)
+        : expr(std::move(e)) {
+        this->pos = pos;
+        this->ast_type = AstType::EnsureStmt;
+    }
+};
+
 
 // 设置成员
 struct SetMemberStmt final :  Stmt {

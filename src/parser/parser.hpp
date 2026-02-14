@@ -33,7 +33,6 @@ private:
     // parse stmt
     std::unique_ptr<Stmt> parse_stmt();
     std::unique_ptr<BlockStmt> parse_block(TokenType endswith = TokenType::End);
-    std::unique_ptr<BlockStmt> parse_block(TokenType endswith1, TokenType endswith2, TokenType endswith3);
     std::unique_ptr<IfStmt> parse_if();
 
     // parse expr

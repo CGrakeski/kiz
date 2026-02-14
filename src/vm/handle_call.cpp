@@ -101,7 +101,6 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
             .bp = op_stack.size(),
             .code_object = func->code,
 
-            .try_blocks{},
             .iters{},
 
             .curr_error = nullptr,
@@ -202,7 +201,7 @@ void Vm::call_function(model::Object* func_obj, std::vector<model::Object*> args
         }
 
         if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
-            curr_inst.opc != Opcode::RET && curr_inst.opc != Opcode::JUMP_IF_FINISH_HANDLE_ERROR
+            curr_inst.opc != Opcode::RET
             && curr_inst.opc != Opcode::THROW && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER) {
             curr_frame.pc++;
             }
