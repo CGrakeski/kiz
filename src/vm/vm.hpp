@@ -18,6 +18,18 @@
 
 #include "../kiz.hpp"
 #include "../error/error_reporter.hpp"
+
+#define IGNORE_PC_ADD \
+    if (curr_inst.opc != Opcode::JUMP \
+        && curr_inst.opc != Opcode::JUMP_IF_FALSE \
+        && curr_inst.opc != Opcode::RET \
+        && curr_inst.opc != Opcode::THROW \
+        && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER\
+    ) { \
+                curr_frame->pc++; \
+    }
+
+
 namespace model {
 class Module;
 class CodeObject;

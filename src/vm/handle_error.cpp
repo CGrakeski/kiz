@@ -2,6 +2,7 @@
 
 #include "vm.hpp"
 #include "builtins/include/builtin_functions.hpp"
+#include "opcode/opcode.hpp"
 
 namespace kiz {
 
@@ -27,75 +28,99 @@ void Vm::forward_to_handle_throw(const std::string& name, const std::string& con
 void Vm::handle_throw() {
     assert(call_stack.back()->curr_error);
 
-    auto err_name_it = call_stack.back()->curr_error->attrs.find("__name__");
-    auto err_msg_it = call_stack.back()->curr_error->attrs.find("__msg__");
-    if (!err_name_it or !err_msg_it) {
+    // 提取错误对象的 __name__ 和 __msg__
+    auto err = call_stack.back()->curr_error;
+    auto err_name_it = err->attrs.find("__name__");
+    auto err_msg_it = err->attrs.find("__msg__");
+
+    if (err_name_it || err_msg_it) {
         throw NativeFuncError("NameError",
-        "Undefined attribute '__name__' '__msg__'  of " + obj_to_debug_str(call_stack.back()->curr_error) + " (when try to throw it)"
-        );
+            "Undefined attribute '__name__' '__msg__' of " + obj_to_debug_str(err) + " (when try to throw it)");
     }
     auto error_name = obj_to_str(err_name_it->value);
     auto error_msg = obj_to_str(err_msg_it->value);
 
-    size_t frames_to_pop = 0;
-    CallFrame* target_frame = nullptr;
-    size_t target_pc = 0;
     size_t current_pc = call_stack.back()->pc;
+    size_t frames_to_pop = 0; // 需要从栈顶弹出的帧数
 
-    // 逆序遍历调用栈，寻找最近的 try 块
-    for (auto frame : std::ranges::reverse_view(call_stack)) {
-        auto exc_tbls = frame->code_object->exception_tables;
-        for (auto exc_tbl : exc_tbls) {
-            if (exc_tbl.type_part_end_pc <= current_pc
-                and exc_tbl.type_part_end_pc >= target_pc
-            ) {
-                target_frame = frame;
-                for (auto err_name_idx: exc_tbl.for_catch_texts ) {
-                    if (const_pool[err_name_idx] == err_name_it->value) {
+    // 执行ensure确保资源被释放
+    handle_ensure();
+
+    // 逆序遍历调用栈（从当前帧向旧帧）
+    for (auto it = call_stack.rbegin(); it != call_stack.rend(); ++it, ++frames_to_pop) {
+        CallFrame* frame = *it;
+        // 逆序遍历该帧的异常表（后添加的优先，即内层 try 优先）
+        const auto& exc_tbls = frame->code_object->exception_tables;
+        for (auto tbl_it = exc_tbls.rbegin(); tbl_it != exc_tbls.rend(); ++tbl_it) {
+            const auto& tbl = *tbl_it;
+            // 检查当前 pc 是否在此 try 块的范围内
+            if (tbl.type_part_start_pc <= current_pc && current_pc < tbl.type_part_end_pc) {
+                // 寻找匹配的 catch 块
+                bool matched = false;
+                for (size_t i = 0; i < tbl.for_catch_texts.size(); ++i) {
+                    if (const_pool[tbl.for_catch_texts[i]] == err_name_it->value) {
+                        // 匹配成功，跳转到对应的 catch 代码
+                        frame->pc = tbl.catch_start_pc[i];
+                        matched = true;
                         break;
                     }
                 }
-                continue;
+                if (!matched) {
+                    // 无匹配 catch，跳转到 mismatch_pc（通常是重新抛出）
+                    frame->pc = tbl.mismatch_pc;
+                }
+
+                // 弹出多余的栈帧（从当前帧到目标帧之前的帧）
+                for (size_t i = 0; i < frames_to_pop; ++i) {
+                    call_stack.pop_back();
+                }
+                return; // 处理完成
             }
         }
-        frames_to_pop++;
     }
 
-    // 如果找到有效的 try 块
-    if (target_frame) {
-        // 弹出多余的栈帧
-        for (size_t i = 0; i < frames_to_pop; ++i) {
-            call_stack.pop_back();
-        }
-        // 设置 pc
-        target_frame->pc = target_pc;
-        return;
-    }
-
-
-
-    // 报错
-    if (const auto err_obj = dynamic_cast<model::Error*>(call_stack.back()->curr_error)) {
+    // 没有找到任何能处理该异常的 try 块：打印错误信息并终止执行
+    if (const auto err_obj = dynamic_cast<model::Error*>(err)) {
         std::cout << Color::BRIGHT_RED << "\nTrace Back: " << Color::RESET << std::endl;
-        for (auto& [_path, _pos]: err_obj->positions ) {
+        for (auto& [_path, _pos] : err_obj->positions) {
             err::context_printer(_path, _pos);
         }
     }
 
-    // 错误信息（类型加粗红 + 内容白）
     std::cout << Color::BOLD << Color::BRIGHT_RED << error_name
               << Color::RESET << Color::WHITE << " : " << error_msg
               << Color::RESET << std::endl;
     std::cout << std::endl;
 
-    call_stack.back()->curr_error->del_ref();
+    err->del_ref();
     call_stack.back()->curr_error = nullptr;
-
     throw KizStopRunningSignal();
 }
 
 void Vm::handle_ensure() {
+    auto& ensures = call_stack.back()->code_object->ensure_stmts;
 
+    auto frame = call_stack.back();
+    frame->code_object->code = ensures;
+    frame->pc = 0;
+
+    while (!call_stack.empty() && running) {
+        auto curr_frame = call_stack.back();
+        // 检查当前帧是否执行完毕
+        if (curr_frame->pc >= curr_frame->code_object->code.size()) {
+            break;
+        }
+
+        // 执行当前指令
+        const Instruction& curr_inst = curr_frame->code_object->code[curr_frame->pc];
+        try {
+            execute_unit(curr_inst);
+        } catch (NativeFuncError& e) {
+            forward_to_handle_throw(e.name, e.msg);
+        }
+
+        IGNORE_PC_ADD
+    }
 }
 
 }

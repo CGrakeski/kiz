@@ -241,6 +241,9 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::RET: {
+        // 执行ensure确保资源被释放
+        handle_ensure();
+
         auto frame = call_stack.back();
         call_stack.pop_back();
         call_stack.back()->bp = frame->last_bp;

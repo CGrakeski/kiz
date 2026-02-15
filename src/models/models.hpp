@@ -181,7 +181,7 @@ public:
         std::vector<ExceptionTable> et,
         std::vector<kiz::Instruction> e_s)
             : code(c), var_names(v_n), attr_names(a_n), free_names(f_n), upvalues(u_v), locals_count(l_c),
-                 exception_tables(et), ensure_stmts(e_s) {}
+                 exception_tables(std::move(et)), ensure_stmts(std::move(e_s)) {}
 
     [[nodiscard]] std::string debug_string() const override {
         return "<CodeObject at " + ptr_to_string(this) + ">";

@@ -172,17 +172,17 @@ void Vm::call_function(model::Object* func_obj, std::vector<model::Object*> args
     if (old_call_stack_size == call_stack.size()) return;
 
     while (running and !call_stack.empty() and call_stack.size() > old_call_stack_size) {
-        auto& curr_frame = *call_stack.back();
-        auto& frame_code = curr_frame.code_object;
+        auto curr_frame = call_stack.back();
+        auto& frame_code = curr_frame->code_object;
 
         // 检查是否执行到模块代码末尾：执行完毕则出栈
-        if (curr_frame.pc >= frame_code->code.size()) {
+        if (curr_frame->pc >= frame_code->code.size()) {
             call_stack.pop_back();
             continue;
         }
 
         // 执行当前指令
-        const Instruction& curr_inst = frame_code->code[curr_frame.pc];
+        const Instruction& curr_inst = frame_code->code[curr_frame->pc];
         try {
             if (curr_inst.opc == Opcode::RET and old_call_stack_size == call_stack.size() - 1) {
                 assert(!call_stack.empty());
@@ -200,11 +200,7 @@ void Vm::call_function(model::Object* func_obj, std::vector<model::Object*> args
             return;
         }
 
-        if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
-            curr_inst.opc != Opcode::RET
-            && curr_inst.opc != Opcode::THROW && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER) {
-            curr_frame.pc++;
-            }
+        IGNORE_PC_ADD
 
     }
 }

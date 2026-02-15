@@ -103,6 +103,8 @@ void Vm::set_main_module(model::Module* src_module) {
     // 初始化VM执行状态：标记为"就绪"
     running = true; // 标记VM为运行状态（等待exec触发执行）
     exec_curr_code();
+    // 执行ensure确保资源被释放
+    handle_ensure();
 }
 
 void Vm::exec_curr_code() {
@@ -150,11 +152,7 @@ void Vm::exec_curr_code() {
             forward_to_handle_throw(e.name, e.msg);
         }
 
-        if (curr_inst.opc != Opcode::JUMP && curr_inst.opc != Opcode::JUMP_IF_FALSE &&
-            curr_inst.opc != Opcode::RET
-            && curr_inst.opc != Opcode::JUMP_IF_FINISH_ITER && curr_inst.opc != Opcode::THROW) {
-            curr_frame->pc++;
-        }
+        IGNORE_PC_ADD
     }
 }
 

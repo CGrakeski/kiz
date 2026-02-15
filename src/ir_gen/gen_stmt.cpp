@@ -45,9 +45,31 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::EnsureStmt: {
-            const auto ensure = dynamic_cast<EnsureStmt*>(stmt.get());
-            gen_expr(ensure->expr.get()); // 生成初始化表达式IR
-            //todo
+            auto ensure = dynamic_cast<EnsureStmt*>(stmt.get());
+            size_t old_size = code_chunks.back().code_list.size();
+            gen_expr(ensure->expr.get()); // 生成defer块的指令
+
+            // 计算新生成的指令范围
+            size_t new_size = code_chunks.back().code_list.size();
+            if (new_size > old_size) {
+                //正向复制指令
+                std::vector<Instruction> defer_block;
+                defer_block.reserve(new_size - old_size);
+                for (size_t i = old_size; i < new_size; ++i) {
+                    defer_block.push_back(code_chunks.back().code_list[i]);
+                }
+
+                // 删除原code_list中的这些指令（保留顺序删除）
+                code_chunks.back().code_list.erase(
+                    code_chunks.back().code_list.begin() + old_size,
+                    code_chunks.back().code_list.end()
+                );
+
+                code_chunks.back().ensure_stmts.insert(
+                    code_chunks.back().ensure_stmts.begin(),
+                    defer_block.begin(),
+                    defer_block.end());
+            }
             break;
         }
         case AstType::AssignStmt: {
@@ -609,6 +631,14 @@ void IRGenerator::gen_try(TryStmt* try_stmt) {
 
         exception_table.for_catch_texts.push_back(error_type_name_idx);
         exception_table.catch_start_pc.push_back(code_chunks.back().code_list.size());
+
+        size_t name_idx = get_or_add_name(code_chunks.back().var_names, catch_stmt->var_name);
+
+        code_chunks.back().code_list.emplace_back(
+            Opcode::SET_LOCAL,
+            std::vector{name_idx},
+            try_stmt->pos
+        );
         gen_block(catch_stmt->catch_block.get());
     }
 

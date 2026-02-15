@@ -38,9 +38,7 @@ extern "C" {
             const auto ir = ir_gen.gen(std::move(ast));
             const auto module = kiz::IRGenerator::gen_mod(current_path, ir);
 
-            // 这里需要根据实际的VM实现调整
             kiz::Vm::set_main_module(module);
-            kiz::Vm::exec_curr_code();
 
             result = "Success";
         } catch (const std::exception& e) {
