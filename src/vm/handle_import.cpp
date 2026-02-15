@@ -193,7 +193,7 @@ void Vm::handle_import(const std::string& module_path) {
         throw NativeFuncError("PathError", std::format(
             "Failed to find module in path '{}', tried '{}', '{}', '{}', '{}'", module_path,
             for_search_paths[0].string(), for_search_paths[1].string(),
-            for_search_paths[1].string(), for_search_paths[2].string()
+            for_search_paths[2].string(), for_search_paths[3].string()
         ));
     }
 
