@@ -14,16 +14,18 @@ Object* file_handle_read(Object* self, const List* args) {
         throw NativeFuncError("FileError", "Invalid or corrupted file handle");
     }
 
-    // 关键修复：先清除流的错误状态（比如 EOF），再移动读指针
+    // 清除 EOF 等错误状态，并将读指针移至文件开头
     f_obj->file_handle->clear();
-    // 移动读指针到文件开头（追加模式写入后指针在末尾，需重置）
     f_obj->file_handle->seekg(0, std::ios::beg);
-    // 同步写指针（避免读写指针不一致）
-    f_obj->file_handle->seekp(0, std::ios::end);
 
+    // 读取整个文件内容
     std::ostringstream oss;
     oss << f_obj->file_handle->rdbuf();
 
+    // 检查读取是否成功（可选）
+    if (f_obj->file_handle->fail() && !f_obj->file_handle->eof()) {
+        throw NativeFuncError("FileError", "Read failed");
+    }
     return new String(oss.str());
 }
 
