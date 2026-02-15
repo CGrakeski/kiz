@@ -1,6 +1,6 @@
 fn c
     # 使其报错
-    print(k)
+    print(a.b)
 end
 
 fn b

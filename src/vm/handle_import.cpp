@@ -225,7 +225,8 @@ void Vm::handle_import(const std::string& module_path) {
 
         .iters{},
 
-        .curr_error = nullptr
+        .curr_error = nullptr,
+        .exec_ensure_stmt = false
     };
 
     size_t old_call_stack_size = call_stack.size();

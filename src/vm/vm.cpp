@@ -95,6 +95,7 @@ void Vm::set_main_module(model::Module* src_module) {
         .iters{},
 
         .curr_error = nullptr,
+        .exec_ensure_stmt = false
     };
 
     // 将调用帧压入VM的调用栈
@@ -114,11 +115,10 @@ void Vm::exec_curr_code() {
         // 检查当前帧是否执行完毕
         if (curr_frame->pc >= curr_frame->code_object->code.size()) {
             // 非模块帧则弹出，模块帧则退出循环
-            if (call_stack.size() > 1) {
-                call_stack.pop_back();
-            } else {
+            if (call_stack.size() == 1) {
                 break;
             }
+            call_stack.pop_back();;
             continue;
         }
 
@@ -151,7 +151,6 @@ void Vm::exec_curr_code() {
         } catch (NativeFuncError& e) {
             forward_to_handle_throw(e.name, e.msg);
         }
-
         IGNORE_PC_ADD
     }
 }

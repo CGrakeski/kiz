@@ -1,0 +1,9 @@
+try
+    print("hello")
+    ensure print("goodbye")
+    throw Error("foo", "abcdef")
+catch e (foo)
+    print(e)
+catch e (ArgCountError)
+    print(e)
+end

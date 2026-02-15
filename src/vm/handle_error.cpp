@@ -41,29 +41,31 @@ void Vm::handle_throw() {
     auto error_name = obj_to_str(err_name_it->value);
     auto error_msg = obj_to_str(err_msg_it->value);
 
-    size_t current_pc = call_stack.back()->pc;
     size_t frames_to_pop = 0; // 需要从栈顶弹出的帧数
 
     // 执行ensure确保资源被释放
     handle_ensure();
 
     // 逆序遍历调用栈
-    for (const auto& frame : std::ranges::reverse_view(call_stack)) {
-
-        // 逆序遍历该帧的异常表
-        const auto& exc_tables = frame->code_object->exception_tables;
-        for (const auto& table : exc_tables) {
+    for (auto frame : std::ranges::reverse_view(call_stack)) {
+        for (const auto& table : frame->code_object->exception_tables) {
             // 检查当前 pc 是否在此 try 块的范围内
-            if (table.type_part_start_pc <= current_pc and current_pc < table.type_part_end_pc) {
+            size_t current_pc = frame->pc;
+            if (table.try_part_start_pc <= current_pc and current_pc < table.try_part_end_pc) {
                 // 寻找匹配的 catch 块
                 if (auto catch_start_pc_it = table.handle_pc.find(error_name)) {
                     frame->pc = catch_start_pc_it->value;
-                    // 弹出多余的栈帧（从当前帧到目标帧之前的帧）
-                    for (size_t i = 0; i < frames_to_pop; ++i) {
-                        call_stack.pop_back();
-                    }
-                    return; // 处理完成
+                } else {
+                    frame->pc = table.mismatch_pc;
                 }
+
+                // 弹出多余的栈帧
+                for (size_t i = 0; i < frames_to_pop; ++i) {
+                    call_stack.pop_back();
+                }
+                err->make_ref();
+                frame->curr_error = err;
+                return;
             }
         }
         ++frames_to_pop;
@@ -77,9 +79,10 @@ void Vm::handle_throw() {
         }
     }
 
-    std::cout << Color::BOLD << Color::BRIGHT_RED << error_name
-              << Color::RESET << Color::WHITE << " : " << error_msg
-              << Color::RESET << std::endl;
+    std::cout << Color::BOLD <<
+        Color::BRIGHT_RED << error_name << Color::RESET
+        << Color::WHITE << " : " << error_msg << Color::RESET << "\n";
+
     std::cout << std::endl;
 
     err->del_ref();
@@ -88,9 +91,16 @@ void Vm::handle_throw() {
 }
 
 void Vm::handle_ensure() {
-    auto& ensures = call_stack.back()->code_object->ensure_stmts;
-
     auto frame = call_stack.back();
+    if (frame->exec_ensure_stmt) return;
+
+    auto ensures = frame->code_object->ensure_stmts;
+    if (ensures.empty()) {
+        return;
+    }
+
+    auto old_code = frame->code_object->code;
+    size_t old_pc = call_stack.back()->pc;
     frame->code_object->code = ensures;
     frame->pc = 0;
 
@@ -111,6 +121,9 @@ void Vm::handle_ensure() {
 
         IGNORE_PC_ADD
     }
+    frame->code_object->code = old_code;
+    frame->pc = old_pc;
+    frame->exec_ensure_stmt = true;
 }
 
 }

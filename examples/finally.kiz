@@ -1,8 +1,0 @@
-try
-    print("try...")
-    throw Error("foo", "message")
-catch e : Int
-    print("catch error")
-finally
-    print("finally...")
-end

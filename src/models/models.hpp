@@ -71,8 +71,8 @@ struct UpValue {
 
 
 struct ExceptionTable {
-    size_t type_part_start_pc;
-    size_t type_part_end_pc;
+    size_t try_part_start_pc;
+    size_t try_part_end_pc;
     dep::HashMap<size_t> handle_pc;
     size_t mismatch_pc;
 };
@@ -108,7 +108,6 @@ public:
         refc_.fetch_add(1, std::memory_order_relaxed);
     }
     void del_ref() {
-        if (refc_ == 0) return;
         if (is_important) return;
         const size_t old_ref = refc_.fetch_sub(1, std::memory_order_acq_rel);
         if (old_ref == 1) {

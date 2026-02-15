@@ -58,5 +58,7 @@ model::Object* debug_str(model::Object* self, const model::List* args);
 model::Object* attr(model::Object* self, const model::List* args);
 model::Object* sleep(model::Object* self, const model::List* args);
 model::Object* open(model::Object* self, const model::List* args);
+model::Object* assert_(model::Object* self, const model::List* args);
+model::Object* panic(model::Object* self, const model::List* args);
 
 }

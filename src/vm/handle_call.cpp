@@ -103,6 +103,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
             .iters{},
 
             .curr_error = nullptr,
+            .exec_ensure_stmt = false
         };
         op_stack.resize(op_stack.size() + func->code->locals_count);
 
@@ -192,10 +193,6 @@ void Vm::call_function(model::Object* func_obj, std::vector<model::Object*> args
         } catch (const NativeFuncError& e) {
             // 原生函数执行错误，抛出异常
             forward_to_handle_throw(e.name, e.msg);
-            return;
-        } catch (const KizStopRunningSignal& e) {
-            // 模块执行中触发停止信号，终止执行
-            running = false;
             return;
         }
 

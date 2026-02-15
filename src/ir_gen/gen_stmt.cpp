@@ -323,22 +323,22 @@ void IRGenerator::gen_fn_decl(NamedFuncDeclStmt* func) {
         );
     }
 
-    std::cout << "== IR Result ==" << std::endl;
-    size_t i = 0;
-    for (const auto& inst : code_chunks.back().code_list) {
-        std::string opn_text;
-        for (auto opn : inst.opn_list) {
-            opn_text += std::to_string(opn) + ",";
-        }
-        std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
-        ++i;
-    }
-    std::cout << "== End ==" << std::endl;
-    std::cout << "== VarName Result ==" << std::endl;
-    for (auto n: code_chunks.back().var_names) {
-        std::cout << n << "\n";
-    }
-    std::cout << "== End ==" << std::endl;
+    // std::cout << "== IR Result ==" << std::endl;
+    // size_t i = 0;
+    // for (const auto& inst : code_chunks.back().code_list) {
+    //     std::string opn_text;
+    //     for (auto opn : inst.opn_list) {
+    //         opn_text += std::to_string(opn) + ",";
+    //     }
+    //     std::cout << i << ":" << opcode_to_string(inst.opc) << " " << opn_text << std::endl;
+    //     ++i;
+    // }
+    // std::cout << "== End ==" << std::endl;
+    // std::cout << "== VarName Result ==" << std::endl;
+    // for (auto n: code_chunks.back().var_names) {
+    //     std::cout << n << "\n";
+    // }
+    // std::cout << "== End ==" << std::endl;
 
     auto code_obj = new model::CodeObject(
         code_chunks.back().code_list,
@@ -620,15 +620,29 @@ void IRGenerator::gen_try(TryStmt* try_stmt) {
     // 生成 try 块的语句
     gen_block(try_stmt->try_block.get());
 
+    size_t jump_to_finally_idx = code_chunks.back().code_list.size();
+    code_chunks.back().code_list.emplace_back(
+        Opcode::JUMP,
+        std::vector<size_t>{0},
+        try_stmt->pos
+    );
+
     std::vector<size_t> catch_start_pc;
     model::ExceptionTable exception_table;
-    exception_table.type_part_start_pc = try_start_idx;
-    exception_table.type_part_end_pc = code_chunks.back().code_list.size();
+    exception_table.try_part_start_pc = try_start_idx;
+    exception_table.try_part_end_pc = code_chunks.back().code_list.size();
 
+    std::vector<size_t> catch_jump_to_finally_pcs;
     for (const auto& catch_stmt : try_stmt->catch_blocks) {
         exception_table.handle_pc.insert(catch_stmt->error_text, code_chunks.back().code_list.size());
 
         size_t name_idx = get_or_add_name(code_chunks.back().var_names, catch_stmt->var_name);
+
+        code_chunks.back().code_list.emplace_back(
+            Opcode::LOAD_ERROR,
+            std::vector<size_t>{},
+            try_stmt->pos
+        );
 
         code_chunks.back().code_list.emplace_back(
             Opcode::SET_LOCAL,
@@ -636,6 +650,13 @@ void IRGenerator::gen_try(TryStmt* try_stmt) {
             try_stmt->pos
         );
         gen_block(catch_stmt->catch_block.get());
+
+        catch_jump_to_finally_pcs.push_back(code_chunks.back().code_list.size());
+        code_chunks.back().code_list.emplace_back(
+            Opcode::JUMP,
+            std::vector<size_t>{0},
+            try_stmt->pos
+        );
     }
 
     exception_table.mismatch_pc = code_chunks.back().code_list.size();
@@ -643,6 +664,12 @@ void IRGenerator::gen_try(TryStmt* try_stmt) {
     code_chunks.back().code_list.emplace_back(Opcode::THROW, std::vector<size_t>{}, try_stmt->pos);
 
     code_chunks.back().exception_tables.push_back(exception_table);
+
+    // 回填跳转到finally
+    code_chunks.back().code_list[jump_to_finally_idx].opn_list[0] = code_chunks.back().code_list.size();
+    for (auto catch_jump_to_finally_pc : catch_jump_to_finally_pcs) {
+        code_chunks.back().code_list[catch_jump_to_finally_pc].opn_list[0] = code_chunks.back().code_list.size();
+    }
 
 }
 

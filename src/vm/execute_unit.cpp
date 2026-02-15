@@ -134,7 +134,7 @@ void Vm::execute_unit(const Instruction& instruction) {
 
         // 压入取反结果
         push_to_stack(model::load_bool(
-            is_true(eq_result.get())
+            ! is_true(eq_result.get())
         ));
         break;
     }
@@ -376,6 +376,10 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::LOAD_ERROR: {
+        if (!call_stack.back()->curr_error) {
+            throw KizStopRunningSignal("Unable to load error");
+        }
+        call_stack.back()->curr_error->make_ref();
         push_to_stack(call_stack.back()->curr_error);
         break;
     }

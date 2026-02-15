@@ -64,6 +64,7 @@ struct CallFrame {
     std::vector<model::Object*> iters;
 
     model::Object* curr_error;
+    bool exec_ensure_stmt = false;
 };
 
 class StackRef {

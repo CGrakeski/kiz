@@ -233,4 +233,5 @@ void start_test() {
             std::cout << "========================\n" << "\n";
         }
     }
+    std::cout << "All test pass !" << std::endl;
 }

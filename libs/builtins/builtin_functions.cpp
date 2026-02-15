@@ -393,4 +393,29 @@ model::Object* open(model::Object* self, const model::List* args) {
     return fh_obj;
 }
 
+
+model::Object* assert_(model::Object* self, const model::List* args) {
+    auto args_vec = args->val;
+    std::string msg = "...";
+    if (args_vec.size() == 1) {
+        if (kiz::Vm::is_true(args_vec[0])) {
+            return model::load_nil();
+        }
+    }
+    else if (args_vec.size() == 2) {
+        if (kiz::Vm::is_true(args_vec[0])) {
+            return model::load_nil();
+        }
+        msg = model::cast_to_str(args_vec[1]) ->val;
+    } else kiz::Vm::assert_argc({1,2}, args);
+
+    throw NativeFuncError("Assert", msg);
+}
+
+model::Object* panic(model::Object* self, const model::List* args) {
+    std::string msg = model::cast_to_str(args->val[0]) ->val;
+    std::cout << Color::BG_BRIGHT_RED << "Panic : " << Color::RESET << msg << std::endl;
+    exit(6);
+}
+
 }

@@ -172,19 +172,19 @@ void Repl::eval_and_print(const std::string& cmd, const size_t startline) {
     const auto ir = ir_gen.gen(std::move(ast), last_global_var_names_);
     last_global_var_names_ = ir_gen.get_global_var_names();
 
-    if (vm_.call_stack.empty()) {
+    if (kiz::Vm::call_stack.empty()) {
         const auto module = kiz::IRGenerator::gen_mod(file_path, ir);
-        vm_.set_main_module(module);
+        kiz::Vm::set_main_module(module);
     } else {
         if (!ir) throw KizStopRunningSignal("No ir for run" );
-        vm_.reset_global_code(ir);
+        kiz::Vm::reset_global_code(ir);
     }
 
     DEBUG_OUTPUT("repl print");
-    auto stack_top = vm_.get_stack_top();
-    if (stack_top != nullptr) {
-        if (not dynamic_cast<model::Nil*>(stack_top) and should_print) {
-            std::cout << vm_.obj_to_debug_str(stack_top) << std::endl;
+    auto stack_top = kiz::Vm::get_and_pop_stack_top();
+    if (stack_top.get() != nullptr) {
+        if (not dynamic_cast<model::Nil*>(stack_top.get()) and should_print) {
+            std::cout << kiz::Vm::obj_to_debug_str(stack_top.get()) << std::endl;
         }
     }
 }
