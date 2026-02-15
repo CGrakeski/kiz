@@ -26,7 +26,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
         switch (stmt->ast_type) {
         assert(!code_chunks.empty());
         case AstType::ImportStmt: {
-            const auto* import_stmt = dynamic_cast<ImportStmt*>(stmt.get());
+            const auto import_stmt = dynamic_cast<ImportStmt*>(stmt.get());
             const size_t name_idx = get_or_add_name(code_chunks.back().attr_names, import_stmt->path);
 
             code_chunks.back().code_list.emplace_back(
@@ -74,7 +74,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
         }
         case AstType::AssignStmt: {
             // 变量声明：生成初始化表达式IR + 存储变量指令
-            const auto* var_decl = dynamic_cast<AssignStmt*>(stmt.get());
+            const auto var_decl = dynamic_cast<AssignStmt*>(stmt.get());
             gen_expr(var_decl->expr.get()); // 生成初始化表达式IR
             const size_t name_idx = get_or_add_name(code_chunks.back().var_names, var_decl->name);
 
@@ -151,7 +151,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::ExprStmt: {
-            auto* expr_stmt = dynamic_cast<ExprStmt*>(stmt.get());
+            auto expr_stmt = dynamic_cast<ExprStmt*>(stmt.get());
             gen_expr(expr_stmt->expr.get());
             break;
         }
@@ -169,12 +169,12 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         case AstType::ReturnStmt: {
             // 返回语句：生成返回值表达式IR + RET指令
-            auto* ret_stmt = dynamic_cast<ReturnStmt*>(stmt.get());
+            auto ret_stmt = dynamic_cast<ReturnStmt*>(stmt.get());
             if (ret_stmt->expr) {
                 gen_expr(ret_stmt->expr.get());
             } else {
                 // 无返回值时压入Nil常量
-                auto* nil = model::load_nil();
+                auto nil = model::load_nil();
                 const size_t const_idx = get_or_add_const(nil);
                 code_chunks.back().code_list.emplace_back(
                     Opcode::LOAD_CONST,
@@ -190,7 +190,7 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::ThrowStmt: {
-            auto* throw_stmt = dynamic_cast<ThrowStmt*>(stmt.get());
+            auto throw_stmt = dynamic_cast<ThrowStmt*>(stmt.get());
             gen_expr(throw_stmt->expr.get());
             code_chunks.back().code_list.emplace_back(
                 Opcode::THROW,
@@ -200,7 +200,9 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::BreakStmt: {
-            assert(!code_chunks.back().loop_info_stack.empty());
+            if (code_chunks.back().loop_info_stack.empty()) {
+                err::error_reporter(file_path, stmt->pos, "SyntaxError", "Break statement cannot use freely (must in while/for block)");
+            }
             code_chunks.back().loop_info_stack.back().break_pos.push_back(code_chunks.back().code_list.size());
             code_chunks.back().code_list.emplace_back(
                 Opcode::JUMP,
@@ -214,7 +216,9 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::NextStmt: {
-            assert(!code_chunks.back().loop_info_stack.empty());
+            if (code_chunks.back().loop_info_stack.empty()) {
+                err::error_reporter(file_path, stmt->pos, "SyntaxError", "Next statement cannot use freely (must in while/for block)");
+            }
             code_chunks.back().loop_info_stack.back().continue_pos.push_back(code_chunks.back().code_list.size());
             code_chunks.back().code_list.emplace_back(
                 Opcode::JUMP,
@@ -225,8 +229,8 @@ void IRGenerator::gen_block(const BlockStmt* block) {
         }
         case AstType::SetMemberStmt: {
             // 设置成员：生成对象表达式 -> 生成值表达式 -> 加载属性名 -> SET_ATTR指令
-            const auto* set_mem = dynamic_cast<SetMemberStmt*>(stmt.get());
-            const auto* get_mem = dynamic_cast<GetMemberExpr*>(set_mem->g_mem.get());
+            const auto set_mem = dynamic_cast<SetMemberStmt*>(stmt.get());
+            const auto get_mem = dynamic_cast<GetMemberExpr*>(set_mem->g_mem.get());
             assert(get_mem != nullptr);
             gen_expr(get_mem->father.get()); // 生成对象IR
             gen_expr(set_mem->val.get());   // 生成值IR
@@ -240,8 +244,8 @@ void IRGenerator::gen_block(const BlockStmt* block) {
             break;
         }
         case AstType::SetItemStmt: {
-            const auto* set_item = dynamic_cast<SetItemStmt*>(stmt.get());
-            const auto* get_item = dynamic_cast<GetItemExpr*>(set_item->g_item.get());
+            const auto set_item = dynamic_cast<SetItemStmt*>(stmt.get());
+            const auto get_item = dynamic_cast<GetItemExpr*>(set_item->g_item.get());
 
             gen_expr(get_item->father.get()); // 生成对象IR
             gen_expr(get_item->params[0].get()); // 生成第一参数(仅支持一个参数)

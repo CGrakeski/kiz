@@ -170,6 +170,14 @@ StackRef Vm::get_and_pop_stack_top() {
     return StackRef(stack_top);
 }
 
+model::Object* Vm::simple_get_and_pop_stack_top() {
+    if(op_stack.empty()) throw KizStopRunningSignal("Unable to fetch top of stack");
+    auto stack_top = op_stack.back();
+    if (!stack_top) throw KizStopRunningSignal("Top of stack is free");
+    op_stack.pop_back();
+    return stack_top;
+}
+
 
 void Vm::push_to_stack(model::Object* obj) {
     if (obj == nullptr) return;

@@ -151,12 +151,16 @@ void run_file(const std::string& path) {
     kiz::IRGenerator ir_gen(path);
     kiz::Vm vm (path); // 初始化vm
 
-    lexer.prepare(content);
-    const auto tokens = lexer.tokenize();
-    auto ast = parser.parse(tokens);
-    const auto ir = ir_gen.gen(std::move(ast));
-    auto module = kiz::IRGenerator::gen_mod(path, ir);
-    kiz::Vm::set_main_module(module);
+    try {
+        lexer.prepare(content);
+        const auto tokens = lexer.tokenize();
+        auto ast = parser.parse(tokens);
+        const auto ir = ir_gen.gen(std::move(ast));
+        auto module = kiz::IRGenerator::gen_mod(path, ir);
+        kiz::Vm::set_main_module(module);
+    } catch (KizStopRunningSignal& e) {
+        std::cout << Color::BRIGHT_RED << "==KizStopRunningSignal==" << Color::RESET << std::endl;
+    }
 }
 
 void show_help() {
@@ -230,6 +234,8 @@ void start_test() {
                 std::cout << "====== recover from a error =====\n";
                 continue;
             }
+            kiz::Vm::call_stack.clear();
+            kiz::Vm::op_stack.clear();
             std::cout << "========================\n" << "\n";
         }
     }

@@ -34,16 +34,13 @@ void Vm::make_list(size_t len) {
     elem_list.reserve(elem_count);
 
     for (size_t i = 0; i < elem_count; ++i) {
-        auto elem = get_and_pop_stack_top(); // 弹出
-        elem_list.push_back(elem.get());
+        auto elem = simple_get_and_pop_stack_top(); // 弹出
+        elem_list.push_back(elem);
     }
     std::ranges::reverse(elem_list); // 恢复原序
 
-    auto* list_obj = new model::List(elem_list);      // 内部为每个元素 make_ref
+    auto list_obj = new model::List(elem_list);      // 内部为每个元素 make_ref
     push_to_stack(list_obj);
-
-    // 释放栈对每个元素的引用（get_and_pop_stack_top 不释放引用）
-    for (auto e : elem_list) e->del_ref();
 }
 
 void Vm::make_dict(size_t len) {
@@ -55,18 +52,24 @@ void Vm::make_dict(size_t len) {
     elem_list.reserve(elem_count);
 
     for (size_t i = 0; i < elem_count; ++i) {
-        auto value = get_and_pop_stack_top(); // 弹出 value
-        auto key = get_and_pop_stack_top();   // 弹出 key
+        auto value = simple_get_and_pop_stack_top(); // 弹出 value
+        auto key = simple_get_and_pop_stack_top();   // 弹出 key
 
         // 计算哈希
-        call_method(key.get(), "__hash__", {});
-        auto hash_obj = get_and_pop_stack_top();
-        auto* hashed_int = dynamic_cast<model::Int*>(hash_obj.get());
+        call_method(key, "__hash__", {});
+        auto hash_obj = simple_get_and_pop_stack_top();
+        auto hashed_int = dynamic_cast<model::Int*>(hash_obj);
         if (!hashed_int) {
-            // 异常：释放已弹出的对象和哈希对象
+            hash_obj->del_ref();
+            key->del_ref();
+            value->del_ref();
             throw NativeFuncError("TypeError", "__hash__ must return an integer");
         }
-        elem_list.emplace_back(hashed_int->val, std::pair{key.get(), value.get()});
+        elem_list.emplace_back(hashed_int->val, std::pair{key, value});
+
+        hash_obj->del_ref();
+        key->del_ref();
+        value->del_ref();
     }
 
     auto dict_obj = new model::Dictionary(dep::Dict(elem_list)); // 内部为 key/value make_ref

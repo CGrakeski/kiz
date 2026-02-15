@@ -288,7 +288,7 @@ public:
     static constexpr ObjectType TYPE = ObjectType::List;
     [[nodiscard]] ObjectType get_type() const override { return TYPE; }
 
-    explicit List(std::vector<Object*> val_){
+    explicit List(const std::vector<Object*>& val_){
         for (auto v: val_) {
             v->make_ref();
             val.push_back(v);

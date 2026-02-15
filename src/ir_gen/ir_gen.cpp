@@ -43,7 +43,7 @@ model::CodeObject* IRGenerator::gen(std::unique_ptr<BlockStmt> ast_into, const s
     DEBUG_OUTPUT("generating...");
     // 检查AST根节点有效性（默认模块根为BlockStmt）
     assert(ast && ast->ast_type == AstType::BlockStmt);
-    const auto* root_block = ast.get();
+    const auto root_block = ast.get();
 
     // 处理模块顶层节点
     // 创建函数体

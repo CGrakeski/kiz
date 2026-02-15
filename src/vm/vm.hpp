@@ -106,7 +106,8 @@ public:
 
     ///| 栈操作
     static CallFrame* get_frame();
-    static StackRef get_and_pop_stack_top();
+    static StackRef get_and_pop_stack_top(); // 返回StackRef对象，参与RAII
+    static model::Object* simple_get_and_pop_stack_top(); // 直接返回栈顶值, 需手动del_refc
     static void push_to_stack(model::Object* obj);
     static std::string get_attr_name_by_idx(size_t idx);
 

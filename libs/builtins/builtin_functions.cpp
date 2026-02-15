@@ -87,14 +87,14 @@ model::Object* breakpoint(model::Object* self, const model::List* args) {
         std::cout << "Owner: " << kiz::Vm::obj_to_debug_str(frame->owner) << "\n";
         std::cout << "Pc: " << frame->pc << "\n";
 
-        std::cout << "Locals: " << "\n";
         size_t j = 1;
-        // auto locals_vector = frame->locals.to_vector();
-        // for (const auto& [n, l] : locals_vector) {
-        //     std::cout << n << " = " << kiz::Vm::obj_to_debug_str(l);
-        //     if (j<locals_vector.size()) std::cout << ", ";
-        //     ++j;
-        // }
+        std::cout << "Locals: " << "\n";
+        for (const auto& n : frame->code_object->var_names) {
+            auto l = kiz::Vm::op_stack[frame->bp + j - 1];
+            std::cout << n << " = " << kiz::Vm::obj_to_debug_str(l);
+            if (j<frame->code_object->var_names.size()) std::cout << ", ";
+            ++j;
+        }
         
         std::cout << "\n";
         std::cout << "VarNames: ";
@@ -105,20 +105,42 @@ model::Object* breakpoint(model::Object* self, const model::List* args) {
             ++j;
         }
 
-        // std::cout << "\n";
-        // std::cout << "Consts: ";
-        // j = 1;
-        // for (const auto c: frame->code_object->consts) {
-        //     std::cout << c;
-        //     if (j<frame->code_object->consts.size()) std::cout << ", ";
-        //     ++j;
-        // }
+        std::cout << "\n";
+        std::cout << "AttrNames: ";
+        j = 1;
+        for (const auto& n: frame->code_object->attr_names) {
+            std::cout << n;
+            if (j<frame->code_object->attr_names.size()) std::cout << ", ";
+            ++j;
+        }
+
+        std::cout << "\n";
+        std::cout << "FreeNames: ";
+        j = 1;
+        for (const auto& n: frame->code_object->free_names) {
+            std::cout << n;
+            if (j<frame->code_object->free_names.size()) std::cout << ", ";
+            ++j;
+        }
+
         std::cout << "\n\n";
+
         ++i;
     }
+
+    std::cout << "\n";
+    std::cout << "Consts: ";
+    size_t j = 1;
+    for (const auto c: kiz::Vm::const_pool) {
+        std::cout << kiz::Vm::obj_to_str(c);
+        if (j<kiz::Vm::const_pool.size()) std::cout << ", ";
+        ++j;
+    }
+
     std::cout << "continue to run? (Y/[N])";
     std::string input;
     std::getline(std::cin, input);
+    std::cout.flush();
     if (input == "Y") {
         return model::load_nil();
     }

@@ -43,7 +43,7 @@ void IRGenerator::gen_expr(Expr* expr) {
     }
     case AstType::IdentifierExpr: {
         // 标识符：生成LOAD_VAR指令（加载变量值）
-        const auto* ident = dynamic_cast<IdentifierExpr*>(expr);
+        const auto ident = dynamic_cast<IdentifierExpr*>(expr);
         const auto name_idx_it = std::ranges::find(code_chunks.back().var_names, ident->name);
         if (name_idx_it != code_chunks.back().var_names.end()) {
             size_t name_idx = std::distance(code_chunks.back().var_names.begin(), name_idx_it);
@@ -102,7 +102,7 @@ void IRGenerator::gen_expr(Expr* expr) {
     }
     case AstType::BinaryExpr: {
         // 二元运算：生成左表达式 -> 右表达式 -> 运算指令
-        const auto* bin_expr = dynamic_cast<BinaryExpr*>(expr);
+        const auto bin_expr = dynamic_cast<BinaryExpr*>(expr);
         if (bin_expr->op == "and"){
             gen_expr(bin_expr->left.get());  // 左操作数
 
@@ -162,7 +162,7 @@ void IRGenerator::gen_expr(Expr* expr) {
     }
     case AstType::UnaryExpr: {
         // 一元运算：生成操作数 -> 运算指令
-        auto* unary_expr = dynamic_cast<UnaryExpr*>(expr);
+        auto unary_expr = dynamic_cast<UnaryExpr*>(expr);
         gen_expr(unary_expr->operand.get());
 
         Opcode opc;
@@ -199,7 +199,7 @@ void IRGenerator::gen_expr(Expr* expr) {
     }
     case AstType::GetMemberExpr: {
         // 获取成员：生成对象表达式 -> 加载属性名 -> GET_ATTR指令
-        auto* get_mem = dynamic_cast<GetMemberExpr*>(expr);
+        auto get_mem = dynamic_cast<GetMemberExpr*>(expr);
         gen_expr(get_mem->father.get()); // 生成对象IR
         size_t name_idx = get_or_add_name(code_chunks.back().attr_names, get_mem->child->name);
         code_chunks.back().code_list.emplace_back(
@@ -235,7 +235,7 @@ void IRGenerator::gen_expr(Expr* expr) {
     }
     case AstType::LambdaExpr: {
         // 匿名函数：同普通函数声明，生成函数对象后加载
-        auto* lambda = dynamic_cast<LambdaExpr*>(expr);
+        auto lambda = dynamic_cast<LambdaExpr*>(expr);
 
         // 创建函数体
         code_chunks.emplace_back(CodeChunk());
@@ -359,7 +359,7 @@ void IRGenerator::gen_fn_call(CallExpr* call_expr) {
     );
 
     // 判断 callee 是否为 GetMemberExpr
-    if (auto* member_expr = dynamic_cast<GetMemberExpr*>(call_expr->callee.get())) {
+    if (auto member_expr = dynamic_cast<GetMemberExpr*>(call_expr->callee.get())) {
         gen_expr(member_expr->father.get()); 
 
         // 获取方法名的字符串常量池索引

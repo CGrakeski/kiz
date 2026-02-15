@@ -15,8 +15,8 @@ bool Vm::is_true(model::Object* obj) {
     }
 
     call_method(obj, "__bool__", {});
-    auto result = get_and_pop_stack_top();
-    bool ret = is_true(result.get());
+    auto result = simple_get_and_pop_stack_top();
+    bool ret = is_true(result);
 
     return ret;
 }
@@ -34,7 +34,7 @@ model::Object* Vm::get_attr(model::Object* obj, const std::string& attr_name) {
     }
 
     throw NativeFuncError("NameError",
-        "Undefined attribute '" + attr_name + "'" + " of " + obj_to_debug_str(obj)
+        "Undefined attribute '" + attr_name
     );
 }
 
@@ -44,20 +44,20 @@ model::Object* Vm::get_attr_current(model::Object* obj, const std::string& attr)
         return attr_it->value;
     }
     throw NativeFuncError("NameError",
-        "Undefined attribute '" + attr + "'" + " of current attributes table " + obj_to_debug_str(obj)
+        "Undefined attribute '" + attr + "'" + " of current attributes table"
     );
 }
 
 void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Object* self){
     assert(func_obj != nullptr);
     assert(args_obj != nullptr);
-    auto* args_list = dynamic_cast<model::List*>(args_obj);
+    auto args_list = dynamic_cast<model::List*>(args_obj);
 
     assert(args_list && "CALL: 栈顶-1元素非List类型（参数必须封装为列表）");
     DEBUG_OUTPUT("start to call function");
 
     // 分类型处理函数调用（Function / NativeFunction）
-    if (const auto* cpp_func = dynamic_cast<model::NativeFunction*>(func_obj)) {
+    if (const auto cpp_func = dynamic_cast<model::NativeFunction*>(func_obj)) {
         // -------------------------- 处理 NativeFunction 调用 --------------------------
         model::Object* return_val = cpp_func->func(self, args_list);
 
@@ -69,7 +69,7 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
         // 返回值压入操作数栈
         push_to_stack(return_val);
-    } else if (auto* func = dynamic_cast<model::Function*>(func_obj)) {
+    } else if (auto func = dynamic_cast<model::Function*>(func_obj)) {
         // -------------------------- 处理 Function 调用 --------------------------
         DEBUG_OUTPUT("call Function: " + func->name);
 
@@ -231,8 +231,8 @@ std::string Vm::obj_to_str(model::Object* for_cast_obj) {
     } catch (NativeFuncError& e) {
         call_method(for_cast_obj, "__dstr__", {});
     }
-    auto res = get_and_pop_stack_top();
-    std::string val = model::cast_to_str(res.get())->val;
+    auto res = simple_get_and_pop_stack_top();
+    std::string val = model::cast_to_str(res)->val;
     return val;
 }
 
@@ -244,8 +244,8 @@ std::string Vm::obj_to_debug_str(model::Object* for_cast_obj) {
     } catch (NativeFuncError& e) {
         call_method(for_cast_obj, "__str__", {});
     }
-    auto res = get_and_pop_stack_top();
-    std::string val = model::cast_to_str(res.get())->val;
+    auto res = simple_get_and_pop_stack_top();
+    std::string val = model::cast_to_str(res) ->val;
     return val;
 }
 }

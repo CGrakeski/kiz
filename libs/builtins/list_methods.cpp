@@ -15,11 +15,11 @@ Object* list_call(Object* self, const List* args) {
     auto for_cast = builtin::get_one_arg(args);
     while (true) {
         kiz::Vm::call_method(for_cast, "__next__", {});
-        auto res = kiz::Vm::get_and_pop_stack_top();
-        if (res.get() == stop_iter_signal) {
+        auto res = kiz::Vm::simple_get_and_pop_stack_top();
+        if (res == stop_iter_signal) {
             break;
         }
-        list.push_back(res.get());
+        list.push_back(res);
     }
     return new List(list);
 }
@@ -96,10 +96,10 @@ Object* list_eq(Object* self, const List* args) {
         kiz::Vm::call_method(
             self_elem, "__eq__", {another_elem}
         );
-        const auto eq_result = kiz::Vm::get_and_pop_stack_top();
+        const auto eq_result = kiz::Vm::simple_get_and_pop_stack_top();
 
         // 解析比较结果
-        const auto eq_bool = dynamic_cast<Bool*>(eq_result.get());
+        const auto eq_bool = dynamic_cast<Bool*>(eq_result);
         if (! eq_bool)
             throw NativeFuncError("TypeError", "__eq__ method must return Bool type");
         
@@ -162,10 +162,10 @@ Object* list_contains(Object* self, const List* args) {
         kiz::Vm::call_method(
             elem, "__eq__", {target_elem}
         );
-        const auto result = kiz::Vm::get_and_pop_stack_top();
+        const auto result = kiz::Vm::simple_get_and_pop_stack_top();
 
         // 找到匹配元素，立即返回true
-        if (kiz::Vm::is_true(result.get())) return load_true();
+        if (kiz::Vm::is_true(result)) return load_true();
     }
     
     // 遍历完未找到匹配元素，返回false
@@ -310,8 +310,8 @@ Object* list_count(Object* self, const List* args) {
 
     for (const auto& item : self_list->val) {
         kiz::Vm::call_method(obj, "__eq__", {item});
-        auto res = kiz::Vm::get_and_pop_stack_top();
-        if (res.get()) {
+        auto res = kiz::Vm::simple_get_and_pop_stack_top();
+        if (res) {
             ++ count;
         }
     }
@@ -326,10 +326,10 @@ Object* list_find(Object* self, const List* args) {
 
     for (auto e : self_list->val) {
         kiz::Vm::call_function(func_obj, {e}, nullptr);
-        auto res = kiz::Vm::get_and_pop_stack_top();
-        if (kiz::Vm::is_true(res.get())) {
-            res.get()->make_ref();
-            return res.get();
+        auto res = kiz::Vm::simple_get_and_pop_stack_top();
+        if (kiz::Vm::is_true(res)) {
+            res->make_ref();
+            return res;
         }
     }
     return load_nil();
@@ -345,9 +345,9 @@ Object* list_map(Object* self, const List* args) {
 
     for (auto e : self_list->val) {
         kiz::Vm::call_function(func_obj, {e}, nullptr);
-        auto res = kiz::Vm::get_and_pop_stack_top();
+        auto res = kiz::Vm::simple_get_and_pop_stack_top();
         
-        new_vec.push_back(res.get());
+        new_vec.push_back(res);
     }
     return new List(new_vec);
 }
@@ -362,9 +362,9 @@ Object* list_filter(Object* self, const List* args) {
 
     for (auto e : self_list->val) {
         kiz::Vm::call_function(func_obj, {e}, nullptr);
-        auto res = kiz::Vm::get_and_pop_stack_top();
-        if (kiz::Vm::is_true(res.get())) {
-            new_vec.push_back(res.get());
+        auto res = kiz::Vm::simple_get_and_pop_stack_top();
+        if (kiz::Vm::is_true(res)) {
+            new_vec.push_back(res);
         }
     }
     return new List(new_vec);
