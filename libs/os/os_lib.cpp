@@ -1,4 +1,4 @@
-#include "include/os_lib.hpp"
+##include "include/os_lib.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -8,6 +8,7 @@
 
 // os_lib.cpp 顶部（全局作用域）
 #ifdef _WIN32
+#include <climits>
 #include <direct.h>  // 用于 _getcwd/_chdir (Windows)
 // MinGW 下正确声明 _environ（无需 __declspec(dllimport)）
 extern char** _environ;
@@ -120,7 +121,7 @@ model::Object* chdir_(model::Object* self, const model::List* args) {
 #if defined(_WIN32)
     if (_chdir(path.c_str()) != 0) {
 #else
-    if (chdir_(path.c_str()) != 0) {
+    if (chdir(path.c_str()) != 0) {
 #endif
         throw NativeFuncError("SystemError", "Failed to change directory: " + path);
     }
