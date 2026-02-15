@@ -162,8 +162,8 @@ Object* str_count(Object* self, const List* args) {
         kiz::Vm::call_method(obj, "__eq__", {
             new String(c.to_string())
         });
-        auto res = kiz::Vm::get_stack_top();
-        if (res) {
+        auto res = kiz::Vm::get_and_pop_stack_top();
+        if (res.get()) {
             ++ count;
         }
     }

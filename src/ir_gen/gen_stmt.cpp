@@ -626,11 +626,7 @@ void IRGenerator::gen_try(TryStmt* try_stmt) {
     exception_table.type_part_end_pc = code_chunks.back().code_list.size();
 
     for (const auto& catch_stmt : try_stmt->catch_blocks) {
-        auto error_type = catch_stmt->error_text;
-        auto error_type_name_idx = get_or_add_const(new model::String(error_type));
-
-        exception_table.for_catch_texts.push_back(error_type_name_idx);
-        exception_table.catch_start_pc.push_back(code_chunks.back().code_list.size());
+        exception_table.handle_pc.insert(catch_stmt->error_text, code_chunks.back().code_list.size());
 
         size_t name_idx = get_or_add_name(code_chunks.back().var_names, catch_stmt->var_name);
 

@@ -9,61 +9,48 @@ void Vm::execute_unit(const Instruction& instruction) {
     case Opcode::OP_ADD: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__add__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__add__", {b.get()});
         break;
     }
 
     case Opcode::OP_SUB: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__sub__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__sub__", {b.get()});
         break;
     }
 
     case Opcode::OP_MUL: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__mul__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__mul__", {b.get()});
         break;
     }
 
     case Opcode::OP_DIV: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__div__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__div__", {b.get()});
         break;
     }
 
     case Opcode::OP_MOD: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__mod__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__mod__", {b.get()});
         break;
     }
 
     case Opcode::OP_POW: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        call_method(a, "__pow__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__pow__", {b.get()});
         break;
     }
 
     case Opcode::OP_NEG: {
         auto a = get_and_pop_stack_top();
-        call_method(a, "__neg__", {});
-        a->del_ref();
+        call_method(a.get(), "__neg__", {});
         break;
     }
 
@@ -71,9 +58,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
 
-        call_method(a, "__eq__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__eq__", {b.get()});
         break;
     }
 
@@ -81,9 +66,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
 
-        call_method(a, "__gt__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__gt__", {b.get()});
         break;
     }
 
@@ -91,9 +74,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
 
-        call_method(a, "__lt__", {b});
-        b->del_ref();
-        a->del_ref();
+        call_method(a.get(), "__lt__", {b.get()});
         break;
     }
 
@@ -101,23 +82,19 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
 
-        call_method(a, "__eq__", {b});
-        call_method(a, "__gt__", {b});
+        call_method(a.get(), "__eq__", {b.get()});
+        call_method(a.get(), "__gt__", {b.get()});
 
         // 统一使用封装的栈操作获取结果
         auto gt_result = get_and_pop_stack_top();
         auto eq_result = get_and_pop_stack_top();
 
         // 压入最终结果
-        if (is_true(gt_result) or is_true(eq_result)) {
+        if (is_true(gt_result.get()) or is_true(eq_result.get())) {
             push_to_stack(model::load_true());
         } else {
             push_to_stack(model::load_false());
         }
-        b->del_ref();
-        a->del_ref();
-        eq_result->del_ref();
-        gt_result->del_ref();
         break;
     }
 
@@ -126,25 +103,21 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto a = get_and_pop_stack_top();
 
         // 调用__eq__方法
-        call_method(a, "__eq__", {b});
+        call_method(a.get(), "__eq__", {b.get()});
 
         // 调用__lt__方法
-        call_method(a, "__lt__", {b});
+        call_method(a.get(), "__lt__", {b.get()});
 
         // 获取结果
         auto lt_result = get_and_pop_stack_top();
         auto eq_result = get_and_pop_stack_top();
 
         // 压入最终结果
-        if (is_true(lt_result) or is_true(eq_result)) {
+        if (is_true(lt_result.get()) or is_true(eq_result.get())) {
             push_to_stack(model::load_true());
         } else {
             push_to_stack(model::load_false());
         }
-        b->del_ref();
-        a->del_ref();
-        eq_result->del_ref();
-        lt_result->del_ref();
         break;
     }
 
@@ -154,26 +127,21 @@ void Vm::execute_unit(const Instruction& instruction) {
 
 
         // 调用__eq__方法
-        call_method(a, "__eq__", {b});
+        call_method(a.get(), "__eq__", {b.get()});
 
         // 获取比较结果
         auto eq_result = get_and_pop_stack_top();
 
         // 压入取反结果
         push_to_stack(model::load_bool(
-            is_true(eq_result)
+            is_true(eq_result.get())
         ));
-
-        b->del_ref();
-        a->del_ref();
-        eq_result->del_ref();
         break;
     }
 
     case Opcode::OP_NOT: {
         auto a = get_and_pop_stack_top();
-        bool result = !is_true(a);
-        a->del_ref();
+        bool result = !is_true(a.get());
         push_to_stack(model::load_bool(result));
         break;
     }
@@ -181,10 +149,7 @@ void Vm::execute_unit(const Instruction& instruction) {
     case Opcode::OP_IS: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        // 压入比较结果
-        b->del_ref();
-        a->del_ref();
-        push_to_stack(model::load_bool(a == b));
+        push_to_stack(model::load_bool(a.get() == b.get()));
         break;
     }
 
@@ -193,10 +158,7 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto item = get_and_pop_stack_top();
 
         // 调用contains方法，参数为item
-        call_method(for_check, "contains", {item});
-
-        for_check->del_ref();
-        item->del_ref();
+        call_method(for_check.get(), "contains", {item.get()});
         break;
     }
 
@@ -231,12 +193,10 @@ void Vm::execute_unit(const Instruction& instruction) {
 
 
     case Opcode::CALL: {
-        model::Object* func_obj = get_and_pop_stack_top();
+        auto func_obj = get_and_pop_stack_top();
         // 弹出栈顶-1元素 : 参数列表
-        model::Object* args_obj = get_and_pop_stack_top();
-        handle_call(func_obj, args_obj, nullptr);
-        func_obj->del_ref();
-        args_obj->del_ref();
+        auto args_obj = get_and_pop_stack_top();
+        handle_call(func_obj.get(), args_obj.get(), nullptr);
         break;
     }
 
@@ -250,14 +210,14 @@ void Vm::execute_unit(const Instruction& instruction) {
         call_stack.back()->pc = frame->return_to_pc;
 
         auto return_val = get_and_pop_stack_top();
-        assert(return_val);
+        assert(return_val.get());
 
         while (frame->bp < op_stack.size()) {
             op_stack.back()->del_ref();
             op_stack.pop_back();
         }
 
-        push_to_stack(return_val);
+        push_to_stack(return_val.get());
 
         frame->owner->del_ref();
         frame->code_object->del_ref();
@@ -273,66 +233,56 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto obj = get_and_pop_stack_top();
 
         // 弹出栈顶-1元素 : 参数列表
-        model::Object* args_obj = get_and_pop_stack_top();
+        auto args_obj = get_and_pop_stack_top();
 
         std::string attr_name = get_attr_name_by_idx(instruction.opn_list[0]);
 
-        auto func_obj = get_attr(obj, attr_name);
+        auto func_obj = get_attr(obj.get(), attr_name);
 
         func_obj->make_ref();
-        handle_call(func_obj, args_obj, obj);
-
-        func_obj->del_ref();
-        obj->del_ref();
-        args_obj->del_ref();
+        handle_call(func_obj, args_obj.get(), obj.get());
         break;
     }
 
     case Opcode::GET_ATTR: {
-        model::Object* obj = get_and_pop_stack_top();
+        auto obj = get_and_pop_stack_top();
          std::string attr_name = get_attr_name_by_idx(instruction.opn_list[0]);
 
-        model::Object* attr_val = get_attr(obj, attr_name);
+        model::Object* attr_val = get_attr(obj.get(), attr_name);
         push_to_stack(attr_val);
-        obj->del_ref();
         break;
     }
 
     case Opcode::SET_ATTR: {
-        model::Object* attr_val = get_and_pop_stack_top();
-        model::Object* obj = get_and_pop_stack_top();
+        auto attr_val = get_and_pop_stack_top();
+        auto obj = get_and_pop_stack_top();
         std::string attr_name = get_attr_name_by_idx(instruction.opn_list[0]);
 
-        auto new_val = model::copy_if_mutable(attr_val);
-        auto old_it = obj->attrs.find(attr_name);   // 获取旧值（若有）
-        obj->attrs_insert(attr_name, new_val);      // 插入新值，内部 make_ref
-        if (old_it) old_it->value->del_ref();       // 释放旧值
+        auto new_val = model::copy_if_mutable(attr_val.get());
+        auto old_it = obj.get()->attrs.find(attr_name);   // 获取旧值（若有）
+        obj.get()->attrs_insert(attr_name, new_val);      // 插入新值，内部 make_ref
 
-        attr_val->del_ref();
-        obj->del_ref();
+        if (old_it) old_it->value->del_ref();       // 释放旧值
         break;
     }
 
     case Opcode::GET_ITEM: {
-        model::Object* obj = get_and_pop_stack_top();
-        auto args_list = model::cast_to_list(get_and_pop_stack_top());
+        auto obj = get_and_pop_stack_top();
+        auto args_list = get_and_pop_stack_top();
 
-        call_method(obj, "__getitem__", args_list->val);
-        args_list->del_ref();
-        obj->del_ref();
+        call_method(obj.get(), "__getitem__", model::cast_to_list(
+            args_list.get()
+        ) -> val);
         break;
     }
 
     case Opcode::SET_ITEM: {
-        model::Object* value = get_and_pop_stack_top();
-        model::Object* arg = get_and_pop_stack_top();
-        model::Object* obj = get_and_pop_stack_top();
+        auto value = get_and_pop_stack_top();
+        auto arg = get_and_pop_stack_top();
+        auto obj = get_and_pop_stack_top();
 
         // 获取对象自身的 __setitem__
-        call_method(obj, "__setitem__", {arg, value});
-        obj->del_ref();
-        value->del_ref();
-        arg->del_ref();
+        call_method(obj.get(), "__setitem__", {arg.get(), value.get()});
         break;
     }
 
@@ -363,17 +313,16 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::SET_LOCAL: {
-        model::Object* value = get_and_pop_stack_top();
+        auto value = get_and_pop_stack_top();
 
         size_t offset = call_stack.back()->bp + instruction.opn_list[0];
-        auto new_val = model::copy_if_mutable(value);
+        auto new_val = model::copy_if_mutable(value.get());
         new_val->make_ref();
 
         if (op_stack[offset]) {
             op_stack[offset]->del_ref();
         }
         op_stack[offset] = new_val;
-        value->del_ref();
         break;
     }
 
@@ -382,14 +331,13 @@ void Vm::execute_unit(const Instruction& instruction) {
         auto offset = instruction.opn_list[0];
         auto value = get_and_pop_stack_top();
 
-        auto new_val = model::copy_if_mutable(value);
+        auto new_val = model::copy_if_mutable(value.get());
         new_val->make_ref();
         if (op_stack[offset]) {
             op_stack[offset]->del_ref();
         }
 
         op_stack[offset] = new_val;
-        value->del_ref();
         break;
     }
 
@@ -401,7 +349,7 @@ void Vm::execute_unit(const Instruction& instruction) {
 
         auto value = get_and_pop_stack_top();
 
-        auto new_val = model::copy_if_mutable(value);
+        auto new_val = model::copy_if_mutable(value.get());
         new_val->make_ref();
 
         if (op_stack[loc_based + upvalue.idx]) {
@@ -409,7 +357,6 @@ void Vm::execute_unit(const Instruction& instruction) {
         }
 
         op_stack[loc_based + upvalue.idx] = new_val;
-        value->del_ref();
 
         // 更新闭包
         if (auto f = dynamic_cast<model::Function*>(call_stack.back()->owner)) {
@@ -421,10 +368,9 @@ void Vm::execute_unit(const Instruction& instruction) {
 
     case Opcode::THROW: {
         auto top = get_and_pop_stack_top();
-        top->del_ref();      // 释放栈引用
         if (call_stack.back()->curr_error) call_stack.back()->curr_error->del_ref();
-        call_stack.back()->curr_error = top;
-        top->make_ref();     // 使 curr_error 持有引用
+        call_stack.back()->curr_error = top.get();
+        top.get()->make_ref();     // 使 curr_error 持有引用
         handle_throw();
         break;
     }
@@ -441,24 +387,20 @@ void Vm::execute_unit(const Instruction& instruction) {
     }
 
     case Opcode::JUMP_IF_FALSE: {
-        model::Object* cond = get_and_pop_stack_top();
-        if (! is_true(cond)) {
+        auto cond = get_and_pop_stack_top();
+        if (! is_true(cond.get())) {
             // 跳转逻辑
             call_stack.back()->pc = instruction.opn_list[0];
         } else {
             call_stack.back()->pc++;
         }
-        cond->del_ref();
         break;
     }
 
     case Opcode::IS_CHILD: {
         auto b = get_and_pop_stack_top();
         auto a = get_and_pop_stack_top();
-        push_to_stack(builtin::check_based_object(a, b));
-        // 释放使用后的a/b对象，计数对称
-        a->del_ref();
-        b->del_ref();
+        push_to_stack(builtin::check_based_object(a.get(), b.get()));
         break;
     }
 
@@ -501,21 +443,18 @@ void Vm::execute_unit(const Instruction& instruction) {
     case Opcode::JUMP_IF_FINISH_ITER: {
         auto obj = get_and_pop_stack_top();
         size_t target_pc = instruction.opn_list[0];
-        if (obj == model::stop_iter_signal) {
+        if (obj.get() == model::stop_iter_signal) {
             call_stack.back()->pc = target_pc;
-            obj->del_ref(); // 修复：释放使用后的obj
             return;
         }
         call_stack.back()->pc ++;
-        obj->del_ref(); // 修复：释放使用后的obj
         break;
     }
 
     case Opcode::COPY_TOP: {
         auto obj = get_and_pop_stack_top();
-        push_to_stack(obj);
-        push_to_stack(obj);
-        obj->del_ref();
+        push_to_stack(obj.get());
+        push_to_stack(obj.get());
         break;
     }
 

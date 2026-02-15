@@ -15,10 +15,9 @@ bool Vm::is_true(model::Object* obj) {
     }
 
     call_method(obj, "__bool__", {});
-    auto result = get_stack_top();
-    bool ret = is_true(result);
+    auto result = get_and_pop_stack_top();
+    bool ret = is_true(result.get());
 
-    result->del_ref();
     return ret;
 }
 
@@ -235,9 +234,8 @@ std::string Vm::obj_to_str(model::Object* for_cast_obj) {
     } catch (NativeFuncError& e) {
         call_method(for_cast_obj, "__dstr__", {});
     }
-    auto res = get_stack_top();
-    std::string val = model::cast_to_str(res)->val;
-    pop_stack_top();
+    auto res = get_and_pop_stack_top();
+    std::string val = model::cast_to_str(res.get())->val;
     return val;
 }
 
@@ -249,8 +247,8 @@ std::string Vm::obj_to_debug_str(model::Object* for_cast_obj) {
     } catch (NativeFuncError& e) {
         call_method(for_cast_obj, "__str__", {});
     }
-    auto res = get_stack_top();
-    std::string val = model::cast_to_str(res)->val;
+    auto res = get_and_pop_stack_top();
+    std::string val = model::cast_to_str(res.get())->val;
     return val;
 }
 }

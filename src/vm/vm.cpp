@@ -163,29 +163,12 @@ CallFrame* Vm::get_frame() {
     throw KizStopRunningSignal("Unable to fetch current frame");
 }
 
-model::Object* Vm::get_stack_top() {
-    if(op_stack.empty()) throw KizStopRunningSignal("Unable to fetch top of stack");
-    auto stack_top = op_stack.back();
-    if (!stack_top) throw KizStopRunningSignal("Top of stack is free");
-    return stack_top;
-}
-
-void Vm::pop_and_del_ref() {
-    auto stack_top = op_stack.back();
-    stack_top->del_ref();
-    op_stack.pop_back();
-}
-
-model::Object* Vm::get_and_pop_stack_top() {
+StackRef Vm::get_and_pop_stack_top() {
     if(op_stack.empty()) throw KizStopRunningSignal("Unable to fetch top of stack");
     auto stack_top = op_stack.back();
     if (!stack_top) throw KizStopRunningSignal("Top of stack is free");
     op_stack.pop_back();
-    return stack_top;
-}
-
-void Vm::pop_stack_top() {
-    op_stack.pop_back();
+    return StackRef(stack_top);
 }
 
 

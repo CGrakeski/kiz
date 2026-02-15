@@ -30,10 +30,11 @@ void Vm::handle_throw() {
 
     // 提取错误对象的 __name__ 和 __msg__
     auto err = call_stack.back()->curr_error;
+    err->make_ref();
     auto err_name_it = err->attrs.find("__name__");
     auto err_msg_it = err->attrs.find("__msg__");
 
-    if (err_name_it || err_msg_it) {
+    if (!err_name_it or !err_msg_it) {
         throw NativeFuncError("NameError",
             "Undefined attribute '__name__' '__msg__' of " + obj_to_debug_str(err) + " (when try to throw it)");
     }
@@ -46,37 +47,26 @@ void Vm::handle_throw() {
     // 执行ensure确保资源被释放
     handle_ensure();
 
-    // 逆序遍历调用栈（从当前帧向旧帧）
-    for (auto it = call_stack.rbegin(); it != call_stack.rend(); ++it, ++frames_to_pop) {
-        CallFrame* frame = *it;
-        // 逆序遍历该帧的异常表（后添加的优先，即内层 try 优先）
-        const auto& exc_tbls = frame->code_object->exception_tables;
-        for (auto tbl_it = exc_tbls.rbegin(); tbl_it != exc_tbls.rend(); ++tbl_it) {
-            const auto& tbl = *tbl_it;
-            // 检查当前 pc 是否在此 try 块的范围内
-            if (tbl.type_part_start_pc <= current_pc && current_pc < tbl.type_part_end_pc) {
-                // 寻找匹配的 catch 块
-                bool matched = false;
-                for (size_t i = 0; i < tbl.for_catch_texts.size(); ++i) {
-                    if (const_pool[tbl.for_catch_texts[i]] == err_name_it->value) {
-                        // 匹配成功，跳转到对应的 catch 代码
-                        frame->pc = tbl.catch_start_pc[i];
-                        matched = true;
-                        break;
-                    }
-                }
-                if (!matched) {
-                    // 无匹配 catch，跳转到 mismatch_pc（通常是重新抛出）
-                    frame->pc = tbl.mismatch_pc;
-                }
+    // 逆序遍历调用栈
+    for (const auto& frame : std::ranges::reverse_view(call_stack)) {
 
-                // 弹出多余的栈帧（从当前帧到目标帧之前的帧）
-                for (size_t i = 0; i < frames_to_pop; ++i) {
-                    call_stack.pop_back();
+        // 逆序遍历该帧的异常表
+        const auto& exc_tables = frame->code_object->exception_tables;
+        for (const auto& table : exc_tables) {
+            // 检查当前 pc 是否在此 try 块的范围内
+            if (table.type_part_start_pc <= current_pc and current_pc < table.type_part_end_pc) {
+                // 寻找匹配的 catch 块
+                if (auto catch_start_pc_it = table.handle_pc.find(error_name)) {
+                    frame->pc = catch_start_pc_it->value;
+                    // 弹出多余的栈帧（从当前帧到目标帧之前的帧）
+                    for (size_t i = 0; i < frames_to_pop; ++i) {
+                        call_stack.pop_back();
+                    }
+                    return; // 处理完成
                 }
-                return; // 处理完成
             }
         }
+        ++frames_to_pop;
     }
 
     // 没有找到任何能处理该异常的 try 块：打印错误信息并终止执行

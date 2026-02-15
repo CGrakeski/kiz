@@ -7,9 +7,9 @@ dep::BigInt hash_object(Object* key_obj) {
     // hash对象
     kiz::Vm::call_method(key_obj, "__hash__", {});
 
-    const auto result = kiz::Vm::get_stack_top();
+    const auto result = kiz::Vm::get_and_pop_stack_top();
 
-    const auto result_int = dynamic_cast<Int*>(result);
+    const auto result_int = dynamic_cast<Int*>(result.get());
     if (!result_int)
         throw NativeFuncError("TypeError", "Object's hash method return a value which type isn't Int");
     dep::BigInt key_hash_val = result_int->val;

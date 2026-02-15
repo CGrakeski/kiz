@@ -105,10 +105,7 @@ public:
 
     ///| 栈操作
     static CallFrame* get_frame();
-    static model::Object* get_stack_top();
-    static model::Object* get_and_pop_stack_top();
-    static void pop_stack_top();
-    static void pop_and_del_ref();
+    static StackRef get_and_pop_stack_top();
     static void push_to_stack(model::Object* obj);
     static std::string get_attr_name_by_idx(size_t idx);
 
