@@ -257,7 +257,7 @@ void Vm::handle_import(const std::string& module_path) {
             forward_to_handle_throw(e.name, e.msg);
         }
 
-        IGNORE_PC_ADD
+        ADVANCE_PC
 
     }
 

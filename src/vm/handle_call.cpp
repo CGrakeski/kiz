@@ -196,7 +196,7 @@ void Vm::call_function(model::Object* func_obj, std::vector<model::Object*> args
             return;
         }
 
-        IGNORE_PC_ADD
+        ADVANCE_PC
 
     }
 }
@@ -210,7 +210,7 @@ void Vm::call_method(model::Object* obj, const std::string& attr_name, std::vect
         "__bool__", "__getitem__", "__setitem__", "contains", "__next__", "__hash__"
     };
     const bool is_magic = std::ranges::find(magic_methods, attr_name) != magic_methods.end();
-    if (!is_magic or obj == model::based_obj) {
+    if (!is_magic) {
         call_function(get_attr(obj, attr_name), args, obj);
         return;
     }
@@ -220,7 +220,7 @@ void Vm::call_method(model::Object* obj, const std::string& attr_name, std::vect
         return;
     }
     throw NativeFuncError("NameError",
-        "Undefined method '" + attr_name + "'" + " of " + obj_to_debug_str(obj)
+        "Undefined method '" + attr_name + "'"
     );
 }
 

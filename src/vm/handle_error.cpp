@@ -119,7 +119,7 @@ void Vm::handle_ensure() {
             forward_to_handle_throw(e.name, e.msg);
         }
 
-        IGNORE_PC_ADD
+        ADVANCE_PC
     }
     frame->code_object->code = old_code;
     frame->pc = old_pc;

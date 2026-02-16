@@ -136,6 +136,7 @@ public:
     }
 };
 
+inline auto based_based_obj = new Object();
 inline auto based_obj = new Object();
 inline auto based_list = new Object();
 inline auto based_function = new Object();

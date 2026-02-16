@@ -5,6 +5,12 @@
 
 namespace model {
 
+// Object类型
+Object* object_str(Object* self, const List* args);
+Object* object_eq(Object* self, const List* args);
+Object* object_setitem(Object* self, const List* args);
+Object* object_getitem(Object* self, const List* args);
+
 // Int 类型原生函数
 Object* int_add(Object* self, const List* args);
 Object* int_sub(Object* self, const List* args);
@@ -112,6 +118,7 @@ Object* list_join(Object* self, const List* args);
 
 // FileHandle类型
 Object* file_handle_read(Object* self, const List* args);
+Object* file_handle_flush(Object* self, const List* args);
 Object* file_handle_write(Object* self, const List* args);
 Object* file_handle_readline(Object* self, const List* args);
 Object* file_handle_close(Object* self, const List* args);
@@ -120,5 +127,18 @@ Object* file_handle_close(Object* self, const List* args);
 Object* range_call(Object* self, const List* args);
 Object* range_next(Object* self, const List* args);
 Object* range_str(Object* self, const List* args);
+
+// Error类型
+Object* error_str(Object* self, const List* args);
+Object* error_call(Object* self, const List* args);
+
+// Function类型
+Object* function_str(Object* self, const List* args);
+
+// NativeFunction类型
+Object* native_function_str(Object* self, const List* args);
+
+// Module类型
+Object* module_str(Object* self, const List* args);
 
 }

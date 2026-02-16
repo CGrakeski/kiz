@@ -148,47 +148,6 @@ void Repl::loop() {
     }
 }
 
-void Repl::eval_and_print(const std::string& cmd, const size_t startline) {
-    DEBUG_OUTPUT("repl eval_and_print...");
-    bool should_print = false;
-
-    // init
-    kiz::Parser parser(file_path);
-    kiz::IRGenerator ir_gen(file_path);
-
-    //auto lineno_start = get_history().size();
-    auto lineno_start = startline;
-    // 问题：原先REPL只支持一行输入，然后当前的行数恰恰就包含了那仅仅一条的新输入的语句，所以没有任何问题，但是现在支持了多行输入，应当从第一行多行输入的地方开始解析！
-    kiz::Lexer lexer(file_path);
-    lexer.prepare(cmd, lineno_start);
-    const auto tokens = lexer.tokenize();
-
-    auto ast = parser.parse(tokens);
-    if (!ast->statements.empty() &&
-        dynamic_cast<kiz::ExprStmt*>(ast->statements.back().get())
-    )   should_print = true;
-
-
-    const auto ir = ir_gen.gen(std::move(ast), last_global_var_names_);
-    last_global_var_names_ = ir_gen.get_global_var_names();
-
-    if (kiz::Vm::call_stack.empty()) {
-        const auto module = kiz::IRGenerator::gen_mod(file_path, ir);
-        kiz::Vm::set_main_module(module);
-    } else {
-        if (!ir) throw KizStopRunningSignal("No ir for run" );
-        kiz::Vm::reset_global_code(ir);
-    }
-
-    DEBUG_OUTPUT("repl print");
-    auto stack_top = kiz::Vm::get_and_pop_stack_top();
-    if (stack_top.get() != nullptr) {
-        if (not dynamic_cast<model::Nil*>(stack_top.get()) and should_print) {
-            std::cout << kiz::Vm::obj_to_debug_str(stack_top.get()) << std::endl;
-        }
-    }
-}
-
 void Repl::handle_user_input(const std::string& cmd) {
     // add to history
     DEBUG_OUTPUT("Adding multiline_start_, now it is: " << multiline_start_ << ", cmd_history_.size(): " << cmd_history_.size());
@@ -210,6 +169,43 @@ void Repl::handle_user_input(const std::string& cmd) {
     DEBUG_OUTPUT("After adding, multiline_start_: " << multiline_start_);
     eval_and_print(cmd, multiline_start_ - actual_additional_line_cnt);
     //因为抛出错误会导致后面代码不执行，所以应当先设定multiline_start_再减掉传给它
+}
+
+void Repl::eval_and_print(const std::string& cmd, const size_t startline) {
+    DEBUG_OUTPUT("repl eval_and_print...");
+    bool should_print = false;
+
+    // init
+    kiz::Parser parser(file_path);
+    kiz::IRGenerator ir_gen(file_path);
+
+    kiz::Lexer lexer(file_path);
+    lexer.prepare(cmd, startline);
+    const auto tokens = lexer.tokenize();
+
+    auto ast = parser.parse(tokens);
+    if (!ast->statements.empty() and
+        dynamic_cast<kiz::ExprStmt*>(ast->statements.back().get())
+    )   should_print = true;
+
+    const auto ir = ir_gen.gen(std::move(ast), last_global_var_names_);
+    last_global_var_names_ = ir_gen.get_global_var_names();
+
+    if (kiz::Vm::call_stack.empty()) {
+        const auto module = kiz::IRGenerator::gen_mod(file_path, ir);
+        kiz::Vm::set_main_module(module);
+    } else {
+        if (!ir) throw KizStopRunningSignal("No ir for run" );
+        kiz::Vm::reset_global_code(ir);
+    }
+
+    DEBUG_OUTPUT("repl print");
+    auto stack_top = kiz::Vm::op_stack.back();
+    if (stack_top != nullptr) {
+        if (not dynamic_cast<model::Nil*>(stack_top) and should_print) {
+            std::cout << kiz::Vm::obj_to_debug_str(stack_top) << std::endl;
+        }
+    }
 }
 
 } // namespace repl

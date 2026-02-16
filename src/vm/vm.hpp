@@ -19,7 +19,7 @@
 #include "../kiz.hpp"
 #include "../error/error_reporter.hpp"
 
-#define IGNORE_PC_ADD \
+#define ADVANCE_PC \
     if (curr_inst.opc != Opcode::JUMP \
         && curr_inst.opc != Opcode::JUMP_IF_FALSE \
         && curr_inst.opc != Opcode::RET \

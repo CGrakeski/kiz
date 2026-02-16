@@ -2,6 +2,28 @@
 
 namespace model {
 
+Object* file_handle_flush(Object* self, const List* args) {
+    kiz::Vm::assert_argc(0, args);
+
+    auto f_obj = dynamic_cast<FileHandle*>(self);
+    assert(f_obj);
+
+    if (f_obj->is_closed) {
+        throw NativeFuncError("FileError", "Cannot flush closed file handle");
+    }
+    if (!f_obj->file_handle || !f_obj->file_handle->good()) {
+        throw NativeFuncError("FileError", "Invalid or corrupted file handle");
+    }
+
+    f_obj->file_handle->flush();
+
+    if (f_obj->file_handle->bad()) {
+        throw NativeFuncError("FileError", "Flush failed due to stream error");
+    }
+
+    return load_nil();
+}
+
 Object* file_handle_read(Object* self, const List* args) {
     kiz::Vm::assert_argc(0, args);
     auto f_obj = dynamic_cast<FileHandle*>(self);
@@ -58,11 +80,9 @@ Object* file_handle_write(Object* self, const List* args) {
 Object* file_handle_readline(Object* self, const List* args) {
     kiz::Vm::assert_argc(1, args);
 
-    // 类型转换并校验 FileHandle 实例
     auto f_obj = dynamic_cast<FileHandle*>(self);
     assert(f_obj);
 
-    // 校验文件句柄状态
     if (f_obj->is_closed) {
         throw NativeFuncError("FileError", "Cannot read from closed file handle");
     }
@@ -70,34 +90,26 @@ Object* file_handle_readline(Object* self, const List* args) {
         throw NativeFuncError("FileError", "Invalid or corrupted file handle");
     }
 
-    // 提取并校验行号参数
+    // 安全转换参数
     auto lineno_obj = cast_to_int(args->val[0]);
-    int64_t lineno = lineno_obj->val.to_unsigned_long_long();
+    size_t lineno = lineno_obj->val.to_unsigned_long_long();
 
-    // 行号必须 >=1，否则返回空字符串
-    if (lineno < 1) {
-        throw NativeFuncError("ValueError", "lineno must be >= 1 (got " + std::to_string(lineno) + ")");
-    }
+    std::string target_line;
+    std::string current_line;
+    int64_t current_lineno = 0;
 
-    // 读取指定行的核心逻辑
-    std::string target_line; // 存储目标行内容
-    std::string current_line; // 临时存储当前行
-    int64_t current_linno = 0; // 当前行号（从0开始计数）
-
-    // 重置文件读取指针到开头，确保每次读取都是从文件起始位置开始
     f_obj->file_handle->seekg(0, std::ios::beg);
-    f_obj->file_handle->clear(); // 清除之前的 EOF 等状态
+    f_obj->file_handle->clear();
 
-    // 逐行读取，直到找到目标行或文件结束
     while (std::getline(*f_obj->file_handle, current_line)) {
-        current_linno++;
-        if (current_linno == lineno) {
+        ++current_lineno;
+        if (current_lineno == lineno) {
             target_line = current_line;
-            // 补回 get_line 吃掉的换行符（除非是文件最后一行）
-            if (!f_obj->file_handle->eof()) {
+            // 若文件未结束（即该行后有内容），补回换行符
+            if (f_obj->file_handle->peek() != EOF) {
                 target_line += "\n";
             }
-            break; // 找到目标行，退出循环
+            break;
         }
     }
 

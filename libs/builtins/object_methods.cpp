@@ -3,7 +3,34 @@
 
 namespace model {
 
+// Object类型
+Object* object_str(Object* self, const List* args) {
+    return new String("<Object at " + model::ptr_to_string(self) + ">");
+}
 
+Object* object_eq(Object* self, const List* args) {
+    const auto other_obj = builtin::get_one_arg(args);
+    return model::load_bool(self == other_obj);
+}
+
+Object* object_setitem(Object* self, const List* args) {
+    assert(args->val.size() == 2);
+    auto attr = args->val[0];
+    auto attr_str = dynamic_cast<model::String*>(attr);
+    assert(attr_str != nullptr);
+    self->attrs_insert(attr_str->val, args->val[1]);
+    return self;
+}
+
+Object* object_getitem(Object* self, const List* args) {
+    auto attr = builtin::get_one_arg(args);
+    auto attr_str = dynamic_cast<model::String*>(attr);
+    assert(attr_str != nullptr);
+    return kiz::Vm::get_attr(self, attr_str->val);
+}
+
+
+// Range类型
 Object* range_call(Object* self, const List* args) {
     auto arg_vector = args->val;
     dep::BigInt start_int = 0;
@@ -70,6 +97,53 @@ Object* range_str(Object* self, const List* args) {
 
     return new String(std::format("Range(start={}, step={}, end={}, current={})", start_int.to_string(),
         step_int.to_string(), end_int.to_string(), current.to_string()));
+}
+
+// Error类型
+Object* error_str(Object* self, const List* args) {
+    auto name = kiz::Vm::obj_to_debug_str(kiz::Vm::get_attr_current(self, "__name__"));
+    auto msg = kiz::Vm::obj_to_debug_str(kiz::Vm::get_attr_current(self, "__msg__"));
+    return new String(std::format("Error(name={}, msg={})", name, msg));
+}
+
+Object* error_call(Object* self, const List* args) {
+    kiz::Vm::assert_argc(2, args);
+    auto err_name = args->val[0];
+    auto err_msg = args->val[1];
+
+    auto err = new Error(kiz::Vm::make_pos_info());
+    err->attrs_insert("__name__", err_name);
+    err->attrs_insert("__msg__", err_msg);
+    return err;
+}
+
+// Function类型
+Object* function_str(Object* self, const List* args) {
+    auto self_fn = dynamic_cast<Function*>(self);
+    return new String(
+        "<Function: path='" + self_fn->name + "', argc=" + std::to_string(self_fn->argc) + " at " + ptr_to_string(self_fn) + ">"
+    );
+}
+
+// NativeFunction类型
+Object* native_function_str(Object* self, const List* args) {
+    auto self_nfn = dynamic_cast<NativeFunction*>(self);
+    return new model::String(
+     "<NativeFunction" +
+         (self_nfn->name.empty()
+         ? ""
+         : ": path='" + self_nfn->name + "'"
+         )
+         + " at " + ptr_to_string(self_nfn) + ">"
+    );
+}
+
+// Module类型
+Object* module_str(Object* self, const List* args) {
+    auto self_mod = dynamic_cast<model::Module*>(self);
+    return new model::String(
+        "<Module: path='" + self_mod->path + "', attr=" + self_mod->attrs.to_string() + ", at " + ptr_to_string(self_mod) + ">"
+    );
 }
 
 }

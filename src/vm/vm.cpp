@@ -43,6 +43,7 @@ Vm::Vm(const std::string& file_path_) {
     model::unique_false->mark_as_important();
     model::unique_true->mark_as_important();
 
+    model::based_based_obj->mark_as_important();
     model::based_obj->mark_as_important();
     model::based_list->mark_as_important();
     model::based_function->mark_as_important();
@@ -151,7 +152,7 @@ void Vm::exec_curr_code() {
         } catch (NativeFuncError& e) {
             forward_to_handle_throw(e.name, e.msg);
         }
-        IGNORE_PC_ADD
+        ADVANCE_PC
     }
 }
 

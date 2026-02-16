@@ -25,30 +25,11 @@ void Vm::entry_builtins() {
     model::based_range->attrs_insert("__parent__", model::based_obj);
 
     // Object 基类 方法
-    model::based_obj->attrs_insert("__eq__", model::create_nfunc([](const model::Object* self, const model::List* args) -> model::Object* {
-        const auto other_obj = builtin::get_one_arg(args);
-        return model::load_bool(self == other_obj);
-    }));
-
-    model::based_obj->attrs_insert("__str__", model::create_nfunc([](const model::Object* self, const model::List* args) -> model::Object* {
-        return new model::String("<Object at " + model::ptr_to_string(self) + ">");
-    }));
-
-    model::based_obj->attrs_insert("__getitem__", model::create_nfunc([](model::Object* self, const model::List* args) -> model::Object* {
-        auto attr = builtin::get_one_arg(args);
-        auto attr_str = dynamic_cast<model::String*>(attr);
-        assert(attr_str != nullptr);
-        return get_attr(self, attr_str->val);
-    }));
-
-    model::based_obj->attrs_insert("__setitem__", model::create_nfunc([](model::Object* self, model::List* args) -> model::Object* {
-        assert(args->val.size() == 2);
-        auto attr = args->val[0];
-        auto attr_str = dynamic_cast<model::String*>(attr);
-        assert(attr_str != nullptr);
-        self->attrs_insert(attr_str->val, args->val[1]);
-        return self;
-    }));
+    model::based_obj->attrs_insert("__parent__", model::based_based_obj);
+    model::based_based_obj->attrs_insert("__eq__", model::create_nfunc(model::object_eq));
+    model::based_based_obj->attrs_insert("__str__", model::create_nfunc(model::object_str));
+    model::based_based_obj->attrs_insert("__getitem__", model::create_nfunc(model::object_getitem));
+    model::based_based_obj->attrs_insert("__setitem__", model::create_nfunc(model::object_setitem));
 
     // Bool 类型魔法方法
     model::based_bool->attrs_insert("__eq__", model::create_nfunc(model::bool_eq));
@@ -156,6 +137,7 @@ void Vm::entry_builtins() {
 
     // FileHandle类型
     model::based_file_handle->attrs_insert("read", model::create_nfunc(model::file_handle_read));
+    model::based_file_handle->attrs_insert("flush", model::create_nfunc(model::file_handle_flush));
     model::based_file_handle->attrs_insert("write", model::create_nfunc(model::file_handle_write));
     model::based_file_handle->attrs_insert("readline", model::create_nfunc(model::file_handle_readline));
     model::based_file_handle->attrs_insert("close", model::create_nfunc(model::file_handle_close));
@@ -165,51 +147,18 @@ void Vm::entry_builtins() {
     model::based_range->attrs_insert("__str__", model::create_nfunc(model::range_str));
     model::based_range->attrs_insert("__next__", model::create_nfunc(model::range_next));
 
+    // Error类型
+    model::based_error->attrs_insert("__call__", model::create_nfunc(model::error_call));
+    model::based_error->attrs_insert("__str__", model::create_nfunc(model::error_str));
 
-    model::based_error->attrs_insert("__call__", model::create_nfunc([](model::Object* self, model::List* args) {
-        assert( args->val.size() == 2);
-        auto err_name = args->val[0];
-        auto err_msg = args->val[1];
+    // Module类型
+    model::based_module->attrs_insert("__str__", model::create_nfunc(model::module_str));
+    // Function类型
+    model::based_function->attrs_insert("__str__", model::create_nfunc(model::function_str));
+    // NativeFunction类型
+    model::based_native_function->attrs_insert("__str__", model::create_nfunc(model::native_function_str));
 
-        auto err = new model::Error(make_pos_info());
-        err->attrs_insert("__name__", err_name);
-        err->attrs_insert("__msg__", err_msg);
-        return err;
-    }));
-
-    model::based_error->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args) {
-        auto name = obj_to_debug_str(get_attr_current(self, "__name__"));
-        auto msg = obj_to_debug_str(get_attr_current(self, "__msg__"));
-        return new model::String(std::format("Error(name={}, msg={})", name, msg));
-    }));
-
-    model::based_module->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args){
-        auto self_mod = dynamic_cast<model::Module*>(self);
-        return new model::String(
-            "<Module: path='" + self_mod->path + "', attr=" + self_mod->attrs.to_string() + ", at " + ptr_to_string(self_mod) + ">"
-        );
-    }));
-
-    model::based_function->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args){
-       auto self_fn = dynamic_cast<model::Function*>(self);
-       return new model::String(
-           "<Function: path='" + self_fn->name + "', argc=" + std::to_string(self_fn->argc) + " at " + ptr_to_string(self_fn) + ">"
-       );
-   }));
-
-    model::based_native_function->attrs_insert("__str__", model::create_nfunc([](model::Object* self, model::List* args){
-       auto self_nfn = dynamic_cast<model::NativeFunction*>(self);
-       return new model::String(
-        "<NativeFunction" +
-            (self_nfn->name.empty()
-            ? ""
-            : ": path='" + self_nfn->name + "'"
-            )
-            + " at " + ptr_to_string(self_nfn) + ">"
-       );
-   }));
-
-    auto builtin_insert = [](std::string name,  model::Object* f) {
+    auto builtin_insert = [](const std::string& name,  model::Object* f) {
         f->make_ref();
         builtins.push_back(f);
         builtin_names.push_back(name);
@@ -236,7 +185,7 @@ void Vm::entry_builtins() {
     builtin_insert("assert", model::create_nfunc(builtin::assert_, "assert"));
     builtin_insert("panic", model::create_nfunc(builtin::panic, "panic"));
 
-
+    builtin_insert("__BasedObject", model::based_based_obj);
     builtin_insert("Object", model::based_obj);
     builtin_insert("Int", model::based_int);
     builtin_insert("Bool", model::based_bool);

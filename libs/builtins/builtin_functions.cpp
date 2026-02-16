@@ -370,33 +370,33 @@ model::Object* sleep(model::Object* self, const model::List* args) {
 
 model::Object* open(model::Object* self, const model::List* args) {
     kiz::Vm::assert_argc(2, args);
-    auto path = cast_to_str(args->val[0]) ->val;
-    auto mode = cast_to_str(args->val[1]) ->val;
+    auto path = cast_to_str(args->val[0])->val;
+    auto mode = cast_to_str(args->val[1])->val;
 
     auto real_path = kiz::Vm::get_exe_abs_dir() / kiz::Vm::get_current_file_path().parent_path() / path;
 
-    std::ios_base::openmode open_mode = std::ios_base::binary;
+    std::ios_base::openmode open_mode = std::ios_base::in | std::ios_base::out; // 默认不设置 binary
+    // 根据 mode 设置具体标志（此处 mode 不包含 'b'，即默认文本模式）
     if (mode == "r") {
-        open_mode |= std::ios_base::in;          // 只读
+        open_mode = std::ios_base::in;
         if (!std::filesystem::is_regular_file(real_path)) {
             throw NativeFuncError("PathError", "File not found: " + real_path.string());
         }
     } else if (mode == "w") {
-        open_mode |= std::ios_base::out | std::ios_base::trunc;  // 写入（覆盖）
+        open_mode = std::ios_base::out | std::ios_base::trunc;
     } else if (mode == "a") {
-        open_mode |= std::ios_base::in | std::ios_base::out | std::ios_base::app;
+        open_mode = std::ios_base::out | std::ios_base::app;
     } else if (mode == "r+") {
-        open_mode |= std::ios_base::in | std::ios_base::out;     // 读写
+        open_mode = std::ios_base::in | std::ios_base::out;
         if (!std::filesystem::is_regular_file(real_path)) {
             throw NativeFuncError("PathError", "File not found: " + real_path.string());
         }
     } else if (mode == "w+") {
-        open_mode |= std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
+        open_mode = std::ios_base::in | std::ios_base::out | std::ios_base::trunc;
     } else {
         throw NativeFuncError("ModeError", "Invalid file mode: " + mode);
     }
 
-    // 移除全局文件存在性校验（仅在只读/读写模式下单独校验）
     auto file_stream = new std::fstream();
     file_stream->open(real_path.string(), open_mode);
 
@@ -405,7 +405,6 @@ model::Object* open(model::Object* self, const model::List* args) {
         throw NativeFuncError("FileOpenError", "Failed to open file: " + real_path.string());
     }
 
-    // 创建 FileHandleObject 并关联文件句柄
     auto fh_obj = new model::FileHandle();
     fh_obj->attrs_insert("__parent__", model::based_file_handle);
     fh_obj->attrs_insert("mode", new model::String(mode));
