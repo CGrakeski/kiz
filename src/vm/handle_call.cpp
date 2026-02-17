@@ -152,12 +152,14 @@ void Vm::handle_call(model::Object* func_obj, model::Object* args_obj, model::Ob
 
     // 处理对象魔术方法__call__
     } else {
+        model::Object* callable;
         try {
-            const auto callable = get_attr(func_obj, "__call__");
-            handle_call(callable, args_obj, func_obj);
+            callable = get_attr(func_obj, "__call__");
         } catch (NativeFuncError& e) {
             throw NativeFuncError("TypeError", "try to call an uncallable object");
         }
+        assert(callable);
+        handle_call(callable, args_obj, func_obj);
     }
 }
 
