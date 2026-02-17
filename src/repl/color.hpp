@@ -53,4 +53,59 @@ namespace Color {
     inline std::string BG_BRIGHT_MAGENTA = "\033[105m";// 背景亮品红色
     inline std::string BG_BRIGHT_CYAN = "\033[106m";   // 背景亮青色
     inline std::string BG_BRIGHT_WHITE = "\033[107m";  // 背景亮白色
+
+
+    inline void clear_color() {
+        // 核心逻辑：把所有颜色/样式常量重置为空字符串
+        RESET = "";
+
+        // 文本样式
+        BOLD = "";
+        FAINT = "";
+        ITALIC = "";
+        UNDERLINE = "";
+        BLINK = "";
+        REVERSE = "";
+        HIDDEN = "";
+
+        // 前景色（标准）
+        BLACK = "";
+        RED = "";
+        GREEN = "";
+        YELLOW = "";
+        BLUE = "";
+        MAGENTA = "";
+        CYAN = "";
+        WHITE = "";
+
+        // 前景色（高亮）
+        BRIGHT_BLACK = "";
+        BRIGHT_RED = "";
+        BRIGHT_GREEN = "";
+        BRIGHT_YELLOW = "";
+        BRIGHT_BLUE = "";
+        BRIGHT_MAGENTA = "";
+        BRIGHT_CYAN = "";
+        BRIGHT_WHITE = "";
+
+        // 背景色（标准）
+        BG_BLACK = "";
+        BG_RED = "";
+        BG_GREEN = "";
+        BG_YELLOW = "";
+        BG_BLUE = "";
+        BG_MAGENTA = "";
+        BG_CYAN = "";
+        BG_WHITE = "";
+
+        // 背景色（高亮）
+        BG_BRIGHT_BLACK = "";
+        BG_BRIGHT_RED = "";
+        BG_BRIGHT_GREEN = "";
+        BG_BRIGHT_YELLOW = "";
+        BG_BRIGHT_BLUE = "";
+        BG_BRIGHT_MAGENTA = "";
+        BG_BRIGHT_CYAN = "";
+        BG_BRIGHT_WHITE = "";
+    }
 }
