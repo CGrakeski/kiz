@@ -1,51 +1,6 @@
 <div align="center">
 
-<svg width="200" height="206" viewBox="0 0 676 697" xmlns="http://www.w3.org/2000/svg">
-  <!-- K 字母主体 -->
-  <path d="M245 198 L495 198 L245 598 Z" fill="#4EC0D9"/>
-  <path d="M245 498 Q320 450, 400 498 L400 598 L245 598 Z" fill="#2A7BCC"/>
-
-  <!-- 猫咪身体 -->
-  <ellipse cx="390" cy="160" rx="120" ry="80" fill="white" stroke="#2D3035" stroke-width="4"/>
-  <!-- 猫咪头部 -->
-  <circle cx="300" cy="140" r="50" fill="white" stroke="#2D3035" stroke-width="4"/>
-  <!-- 耳朵 -->
-  <path d="M265 100 L250 70 L280 90 Z" fill="white" stroke="#2D3035" stroke-width="2"/>
-  <path d="M335 100 L350 70 L320 90 Z" fill="white" stroke="#2D3035" stroke-width="2"/>
-  <path d="M268 102 L258 80 L278 92 Z" fill="#FFB6C1"/>
-  <path d="M332 102 L342 80 L322 92 Z" fill="#FFB6C1"/>
-  <!-- 头部条纹 -->
-  <path d="M280 110 L285 120" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <path d="M290 110 L295 120" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <path d="M310 110 L315 120" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <!-- 眼睛 -->
-  <path d="M275 135 Q280 140, 285 135" stroke="#2D3035" stroke-width="2" fill="none"/>
-  <path d="M315 135 Q320 140, 325 135" stroke="#2D3035" stroke-width="2" fill="none"/>
-  <!-- 鼻子和嘴 -->
-  <path d="M298 150 L302 150 L300 154 Z" fill="#FFB6C1" stroke="#2D3035" stroke-width="1"/>
-  <path d="M300 154 Q300 160, 295 162" stroke="#2D3035" stroke-width="1.5" fill="none"/>
-  <path d="M300 154 Q300 160, 305 162" stroke="#2D3035" stroke-width="1.5" fill="none"/>
-  <!-- 胡须 -->
-  <path d="M270 145 L240 140" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <path d="M270 150 L240 150" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <path d="M270 155 L240 160" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <path d="M330 145 L360 140" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <path d="M330 150 L360 150" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <path d="M330 155 L360 160" stroke="#2D3035" stroke-width="1" stroke-linecap="round"/>
-  <!-- 前爪 -->
-  <circle cx="300" cy="190" r="18" fill="white" stroke="#2D3035" stroke-width="2"/>
-  <path d="M292 190 L296 190" stroke="#2D3035" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M300 190 L304 190" stroke="#2D3035" stroke-width="1.5" stroke-linecap="round"/>
-  <!-- 尾巴 -->
-  <path d="M410 180 Q450 200, 470 180" stroke="#2D3035" stroke-width="4" fill="white"/>
-  <path d="M430 190 L440 195" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <path d="M445 195 L455 190" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <path d="M460 185 L470 180" stroke="#A8B0B8" stroke-width="3" stroke-linecap="round"/>
-  <!-- 身体条纹 -->
-  <path d="M380 110 L400 120" stroke="#A8B0B8" stroke-width="4" stroke-linecap="round"/>
-  <path d="M410 110 L430 120" stroke="#A8B0B8" stroke-width="4" stroke-linecap="round"/>
-  <path d="M440 120 L460 130" stroke="#A8B0B8" stroke-width="4" stroke-linecap="round"/>
-</svg>
+<image src="https://pub-141831e61e69445289222976a15b6fb3.r2.dev/Image_to_url_V2/HEIF---imagetourl.cloud-1770101835669-relrd5.jpeg" width=160 height=220/>
 
 <h1> kiz v0.7.0 🎉</h1>
 </div>
