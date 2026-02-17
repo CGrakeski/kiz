@@ -435,8 +435,8 @@ model::Object* assert_(model::Object* self, const model::List* args) {
 
 model::Object* panic(model::Object* self, const model::List* args) {
     std::string msg = model::cast_to_str(args->val[0]) ->val;
-    std::cout << Color::BRIGHT_RED << "Panic : " << Color::RESET << msg << std::endl;
-    exit(6);
+    std::cout << Color::BRIGHT_RED << "A Panic! : " << Color::RESET << msg << std::endl;
+    exit(3);
 }
 
 }

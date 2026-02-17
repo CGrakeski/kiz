@@ -32,7 +32,7 @@
 class KizStopRunningSignal final : public std::runtime_error {
 public:
     KizStopRunningSignal() noexcept
-        : std::runtime_error("...") {}
+        : std::runtime_error("") {}
 
     explicit KizStopRunningSignal(const std::string& msg) noexcept
         : std::runtime_error(msg) {}

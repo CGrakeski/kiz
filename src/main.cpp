@@ -159,9 +159,13 @@ void run_file(const std::string& path) {
         auto module = kiz::IRGenerator::gen_mod(path, ir);
         kiz::Vm::set_main_module(module);
     } catch (KizStopRunningSignal& e) {
+        if (std::string(e.what()).empty()) {
+            std::exit(0);
+        }
         std::cout << Color::BOLD <<
-        Color::BRIGHT_RED << "KizStopRunningSignal: " << Color::RESET
+        Color::BRIGHT_RED << "A Panic! : " << Color::RESET
         << Color::WHITE << " : " << e.what() << Color::RESET << "\n";
+        std::exit(1);
     }
 }
 
