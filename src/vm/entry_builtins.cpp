@@ -83,6 +83,9 @@ void Vm::entry_builtins() {
     model::based_dict->attrs_insert("__str__", model::create_nfunc(model::dict_str));
     model::based_dict->attrs_insert("__dstr__", model::create_nfunc(model::dict_dstr));
     model::based_dict->attrs_insert("__setitem__", model::create_nfunc(model::dict_setitem));
+    model::based_dict->attrs_insert("__next__", model::create_nfunc(model::dict_next));
+    model::based_dict->attrs_insert("foreach", model::create_nfunc(model::dict_foreach));
+    model::based_dict->attrs_insert("len", model::create_nfunc(model::dict_len));
 
     // List 类型魔法方法
     model::based_list->attrs_insert("__add__", model::create_nfunc(model::list_add));

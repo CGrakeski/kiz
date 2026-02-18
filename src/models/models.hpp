@@ -363,9 +363,13 @@ public:
             if (kv_pair.second) kv_pair.second->make_ref();
         }
         attrs_insert("__parent__", based_dict);
+        auto zero = kiz::Vm::small_int_pool[0];
+        attrs_insert("__current_index__", zero);
     }
     explicit Dictionary() {
         attrs_insert("__parent__", based_dict);
+        auto zero = kiz::Vm::small_int_pool[0];
+        attrs_insert("__current_index__", zero);
     }
 
     [[nodiscard]] std::string debug_string() const override {

@@ -89,6 +89,9 @@ Object* dict_setitem(Object* self, const List* args);
 Object* dict_getitem(Object* self, const List* args);
 Object* dict_str(Object* self, const List* args);
 Object* dict_dstr(Object* self, const List* args);
+Object* dict_foreach(Object* self, const List* args);
+Object* dict_next(Object* self, const List* args);
+Object* dict_len(Object* self, const List* args);
 
 // List 类型原生函数
 Object* list_eq(Object* self, const List* args);

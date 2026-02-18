@@ -128,4 +128,42 @@ Object* dict_dstr(Object* self, const List* args) {
     return new String(result);
 }
 
+Object* dict_foreach(Object* self, const List* args) {
+    auto func_obj = builtin::get_one_arg(args);
+
+    auto self_dict = dynamic_cast<Dictionary*>(self);
+    assert(self_dict != nullptr);
+
+    dep::BigInt idx = 0;
+    for (auto pair : self_dict->val.to_vector() | std::views::values) {
+        kiz::Vm::call_function(func_obj, {pair.first, pair.second}, nullptr);
+        idx += 1;
+    }
+    return load_nil();
+}
+
+Object* dict_next(Object* self, const List* args) {
+    auto curr_idx_it = self->attrs.find("__current_index__");
+    if(!curr_idx_it)
+        throw NativeFuncError("TypeError", "Dict.next cannot find attribute '__current_index__' to get current item");
+
+    auto curr_idx = curr_idx_it->value;
+
+    auto index =  cast_to_int(curr_idx) ->val.to_unsigned_long_long();
+
+    auto self_dict = dynamic_cast<Dictionary*>(self);
+    if (index < self_dict->val.size()) {
+        auto res = self_dict->val.to_vector()[index].second.second;
+        self->attrs_insert("__current_index__", new Int(index+1));
+        return res;
+    }
+    self->attrs_insert("__current_index__", kiz::Vm::small_int_pool[0]);
+    return load_stop_iter_signal();
+}
+
+Object* dict_len(Object* self, const List* args) {
+    auto self_dict = dynamic_cast<Dictionary*>(self);
+    return new Int(self_dict->val.to_vector().size());
+}
+
 }  // namespace model
