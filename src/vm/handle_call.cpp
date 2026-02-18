@@ -35,7 +35,7 @@ model::Object* Vm::get_attr(model::Object* obj, const std::string& attr_name) {
     }
 
     throw NativeFuncError("NameError",
-        "Undefined attribute '" + attr_name
+        "Undefined attribute '" + attr_name + "'"
     );
 }
 

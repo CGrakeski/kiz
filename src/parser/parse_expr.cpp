@@ -359,7 +359,11 @@ std::vector<std::unique_ptr<Expr>> Parser::parse_args(const TokenType endswith){
     std::vector<std::unique_ptr<Expr>> params;
     while (curr_token().type != endswith) {
         params.emplace_back(parse_expression());
-        if (curr_token().type == TokenType::Comma) skip_token(",");
+        if (curr_token().type == TokenType::Comma) {
+            skip_token(",");
+        } else if (curr_token().type != endswith) {
+            err::error_reporter(file_path, curr_token().pos, "SyntaxError", "Unclosed argument list");
+        }
     }
     return params;
 }

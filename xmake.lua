@@ -1,5 +1,5 @@
 set_project("kiz")
-set_version("0.6.0")
+set_version("0.7.11")
 set_languages("c++20")
 
 target("version")
@@ -9,9 +9,9 @@ target("version")
         if content then
             -- 进行文本替换，例如替换版本号
             content = content:gsub("@KIZ_VERSION_MAJOR@", "0")
-            content = content:gsub("@KIZ_VERSION_MINOR@", "6")
-            content = content:gsub("@KIZ_VERSION_PATCH@", "0")
-            content = content:gsub("@KIZ_VERSION@", "0.6.0")
+            content = content:gsub("@KIZ_VERSION_MINOR@", "7")
+            content = content:gsub("@KIZ_VERSION_PATCH@", "11")
+            content = content:gsub("@KIZ_VERSION@", "0.7.11")
             -- 将新内容写回文件（或写入新位置）
             io.writefile("cmake-build-debug/include/version.hpp", content)
         end

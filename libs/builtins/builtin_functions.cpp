@@ -315,6 +315,9 @@ model::Object* create(model::Object* self, const model::List* args) {
         return o;
     }
     const auto obj = get_one_arg(args);
+    if (obj->get_type() != model::Object::ObjectType::Object) {
+        throw NativeFuncError("TypeError", "Cannot create object from a instance of a native type");
+    }
     const auto new_obj = new model::Object();
 
     new_obj->attrs_insert("__parent__", obj);
@@ -330,7 +333,7 @@ model::Object* type_of_obj(model::Object* self, const model::List* args) {
         case model::Object::ObjectType::Int: type_str = "Int"; break;
         case model::Object::ObjectType::String: type_str = "Str"; break;
         case model::Object::ObjectType::Object: type_str = "Object"; break;
-        case model::Object::ObjectType::Nil: type_str = "__Nil"; break;
+        case model::Object::ObjectType::Nil: type_str = "Nil"; break;
         case model::Object::ObjectType::Error: type_str = "Error"; break;
         case model::Object::ObjectType::Function: type_str = "Func"; break;
         case model::Object::ObjectType::List: type_str = "List"; break;

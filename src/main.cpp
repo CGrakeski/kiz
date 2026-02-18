@@ -36,6 +36,7 @@ void run_file(const std::string& path);
 /// 主函数
 int main(const int argc, char* argv[]) {
     args_parser(argc, argv);
+    std::cout << Color::RESET << std::endl;
     return 0;
 }
 
@@ -79,6 +80,39 @@ void enable_ansi_escape() {
 #endif
 }
 
+#ifdef _WIN32
+#include <io.h>
+#define STDOUT_FILENO 1
+
+// Windows 控制台事件处理函数
+BOOL WINAPI ConsoleHandler(DWORD dwCtrlType) {
+    switch (dwCtrlType) {
+    case CTRL_C_EVENT:        // Ctrl+C
+    case CTRL_BREAK_EVENT:    // Ctrl+Break
+    case CTRL_CLOSE_EVENT:    // 控制台窗口关闭
+    case CTRL_LOGOFF_EVENT:   // 用户注销
+    case CTRL_SHUTDOWN_EVENT: // 系统关机
+        // 使用 write 直接输出颜色重置（异步安全）
+        _write(STDOUT_FILENO, Color::RESET.c_str(), strlen(Color::RESET.c_str()));
+        // 立即终止进程，不调用任何非异步信号安全的函数
+        ExitProcess(128 + (DWORD)dwCtrlType);
+    default:
+        return FALSE;
+    }
+}
+#else
+// POSIX 系统 (Linux, macOS)
+#include <csignal>
+#include <unistd.h>
+
+extern "C" void handle_sigint(int sig) {
+    // 直接使用 write 输出重置颜色（异步信号安全）
+    write(STDOUT_FILENO, Color::RESET.c_str(), strlen(Color::RESET.c_str()));
+    _exit(128 + sig);
+}
+#endif
+
+
 /**
  * @brief 解析命令行参数（argc/argv）
  * @param argc 命令行参数个数（来自main函数）
@@ -88,6 +122,22 @@ void enable_ansi_escape() {
 void args_parser(const int argc, char* argv[]) {
     // 程序名称
     enable_ansi_escape();
+    // 注册平台特定的信号处理函数
+#ifdef _WIN32
+    // Windows: 设置控制台事件处理
+    if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
+        std::cerr << "Waring: Cannot blind Ctrl+C Handler" << std::endl;
+        return;
+    }
+#else
+    // POSIX: 设置 SIGINT 处理
+    struct sigaction sa;
+    sa.sa_handler = handle_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;  // 不设置 SA_RESTART，使 getline 能被中断
+    sigaction(SIGINT, &sa, nullptr);
+#endif
+
     if (nocolor) {
         Color::clear_color();
     }

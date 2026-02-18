@@ -455,7 +455,7 @@ public:
     BigInt pow(const BigInt& other) const {
         // 指数必须为非负整数
         if(other.is_negative_)
-            throw NativeFuncError("CalculateError", "use nag into Bigint.pow unsupport");
+            throw NativeFuncError("CalculateError", "use negative int into Bigint.pow is unsupported");
 
         const BigInt& exp = other;
         const BigInt zero(0);
